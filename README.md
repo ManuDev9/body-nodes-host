@@ -18,6 +18,8 @@ For now we have the following hosts:
     - fullsuit11_recording.py : python script for the "Bodynodes recording" tab with all recording functionalities
     - fullsuit11_animation.py : python script for the "Bodynodes animation" tab with all animation functionalities
     - For more info about the functionalities watch this video: https://www.youtube.com/watch?v=LVsrDDIUEkY&t=5s
+    - armature_config_XXX.json : bodynodes configuration files containing the bodypart-bones relations
+    - example_animation.json : example of bodynodes animation data file
   - Cool functions we implemented to help using bodynodes animation data:
     - Walk algorithm: https://www.youtube.com/watch?v=99TttiHgcV4&t=11s
     - Steady feet algortihm: https://www.youtube.com/watch?v=o5ng-tRwjA0
