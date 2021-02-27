@@ -2,7 +2,7 @@
 BodyNodes repository for the host side
 
 For now we have the following hosts:
-- Blender
+- Blender Wifi
   - It is a UI capable of working collecting movement data from sensor and help you modify it and apply it to the characters
     - Let you create recordings using Bodynodes sensors and save them as animation data in files
     - Let you load from files or bake the animation data in the armature to use and modify
