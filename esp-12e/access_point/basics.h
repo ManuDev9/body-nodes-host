@@ -29,6 +29,8 @@
 #ifndef __ACCESS_POINT_BASIC_H
 #define __ACCESS_POINT_BASIC_H
 
+//ESP-12E
+
 /*
  * A Full body suit is 11 nodes
  * We will take this as max numbers a number of nodes that is higher
@@ -39,7 +41,6 @@
 #define MAX_VALUE_LENGTH 100
 #define MAX_BUFF_LENGTH 500
 
-
 struct Action {
   int type;
   int strength;
@@ -48,17 +49,22 @@ struct Action {
   String message;
 };
 
-struct Connection {
-  IPAddress remote_ip;
-  uint16_t remote_port;
+struct IPAddressPort {
+  IPAddress ip;
+  uint16_t port;
 };
 
 struct Connections {
-  Connection bodypart[MAX_BODYNODES_NUMBER];
+  IPAddressPort conn[MAX_BODYNODES_NUMBER];
+  Action last_action[MAX_BODYNODES_NUMBER];
+  unsigned int conn_status[MAX_BODYNODES_NUMBER];
   unsigned int num_connections;
 };
 
-//ESP-12E
+#define CS_NOTHING 0
+#define CS_WAIT_INIT_ACK 1
+#define CS_WAIT_ACTION_ACK 2
+
 #define STATUS_WIFI_CONNECTION_HMI_LED_P 16
 
 struct StatusConnLED {
@@ -137,7 +143,8 @@ struct StatusConnLED {
 #define WIFI_SSID "BodyNodesHotspot"
 #define WIFI_PASS "bodynodes1"
 
-#define SERVER_PORT_AP 12344
+#define SERVER_PORT_AP_SN 12344
+#define SERVER_PORT_AP_N  12345
 
 #define WIFI_NODE_DEVICE_NAME_TAG "WIFI_node"
 

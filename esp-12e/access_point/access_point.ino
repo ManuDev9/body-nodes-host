@@ -93,32 +93,41 @@ void setup() {
 }
 
 void loop() {
-  JsonArray jsonArray;
-  Connection connection_rec = get_nodes_udp_packets(jsonArray);
-  for(JsonVariant elem : jsonArray) {
-    JsonObject message = elem.as<JsonObject>();
-    const char* mtype = message["type"];
-    const char* mvalue = message["value"];
-    const char* mbodypart = message["bodypart"];
-    const int index_bp = get_index_bodypart(connection_rec, mbodypart);
-    store_message(index_bp, mtype, mvalue);
+  String incomingMessage;
+
+  // Wifi SNodes
+  IPAddressPort connection_rec = get_snodes_udp_packets(incomingMessage);
+  if(strstr(incomingMessage.c_str(), "ACK")  != NULL){
+    if(manageAck(connection_rec) == CS_WAIT_INIT_ACK){
+      sendACK(connection_rec);
+    }
+  } else {
+    parseMessage(connection_rec, incomingMessage);
+  }
+
+  // Wifi Nodes
+  incomingMessage = "";
+  connection_rec = get_nodes_udp_packets(incomingMessage);
+  if(strstr(incomingMessage.c_str(), "ACK")  != NULL){
+    if(manageAck(connection_rec) == CS_WAIT_INIT_ACK){
+      sendACK(connection_rec);
+    }
+  } else {
+    parseMessage(connection_rec, incomingMessage);
+  }
+
+  if(Serial.available( ) > 0) {
+    String incomingString = Serial.readString();
+    Action action = getActionFromString(incomingString);
+    if(action.message.length() > 0){
+      setActionToNodes(action);
+    }
   }
 
   // Messages will be sent every 30 milliseconds
   if(millis() - lastSendMessage > MESSAGES_SEND_PERIOD_MS){
     lastSendMessage = millis();
     serial_send_messages();
-  }
-
-  if(Serial.available( ) > 0) {
-    String incomingString = Serial.readString();
-    Action action = getActionFromString(incomingString);
-    if(action.bodypart[0] == '\0'){ // An empty bodypart action is basically a broadcast
-      Connections connections_send = get_all_connections();
-      sendActionToAllNodes(connections_send, action.message);
-    } else {
-      Connection connection_send = get_connection_bodypart(action.bodypart);
-      sendActionToNode(connection_send, action.message);
-    }
+    sendActions(getConnections());
   }
 }

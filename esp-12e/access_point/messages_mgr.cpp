@@ -24,7 +24,7 @@
 
 #include "messages_mgr.h"
 
-Connection mConnections[MAX_BODYNODES_NUMBER];
+Connections mConnections;
 char mBodyparts[MAX_BODYNODES_NUMBER][MAX_BODYPART_LENGTH];
 bool mEnabled[MAX_BODYNODES_NUMBER];
 
@@ -46,60 +46,41 @@ void initMessages(){
   }
 }
 
-
 /*
  * Given a bodypart string, the bodypart index will be returned
  */
-int get_index_bodypart(Connection connection, const char *bodypart){
+int get_index_bodypart(IPAddressPort connection, const char *bodypart){
   if(bodypart == nullptr) {
     return -1;
   }
   unsigned int index = 0;
   for( ;index < MAX_BODYNODES_NUMBER && mEnabled[index]; ++index){
     if(strstr(mBodyparts[index], bodypart)!=NULL){
+      if(mConnections.conn[index].ip != connection.ip){
+          mConnections.conn[index] = connection;
+          mConnections.conn_status[index] = CS_WAIT_INIT_ACK;
+      }
       return index;
     }
   }
   // If not found create new one
   strcpy(mBodyparts[index], bodypart);
-  mConnections[index] = connection;
+  mConnections.conn[index] = connection;
+  mConnections.last_action[index] = Action();
+  mConnections.conn_status[index] = CS_WAIT_INIT_ACK;
+  mConnections.num_connections = index+1;
   mEnabled[index] = true;
   return index;
 }
 
 void store_message(int index_bodypart, const char *mtype, const char *mvalue){
-  if(index_bodypart < 0 || MAX_BODYNODES_NUMBER <= index_bodypart ){
+  if( index_bodypart < 0 || MAX_BODYNODES_NUMBER <= index_bodypart ){
     DEBUG_PRINT("Invalid index_bodypart in store_message");
     return;
   }
   strcpy(mMessagesWS_Type[index_bodypart], mtype);
   strcpy(mMessagesWS_Value[index_bodypart], mvalue);
   mMessagesWS_Changed[index_bodypart] = true;
-}
-
-Connection get_connection_bodypart(const char *bodypart){
-  Connection connection;
-  connection.remote_port = 0;
-  if(bodypart == nullptr) {
-    return connection;
-  }
-  unsigned int index = 0;
-  for( ;index < MAX_BODYNODES_NUMBER && mEnabled[index]; ++index){
-    if(strstr(mBodyparts[index], bodypart)!=NULL){
-      return mConnections[index];
-    }
-  }
-  return connection;  
-}
-
-Connections get_all_connections(){
-  Connections connections;
-  unsigned int index = 0;
-  for(;mEnabled[index]; ++index) {
-    connections.bodypart[index] = mConnections[index];
-  }
-  connections.num_connections = index;
-  return connections;
 }
 
 void serial_send_messages(){
@@ -125,4 +106,75 @@ void serial_send_messages(){
   if(!is_first){
     Serial.println(fullMessage);
   }
+}
+
+void parseMessage(IPAddressPort connection, String message){
+  DynamicJsonDocument messagesJson(JSON_ARRAY_SIZE(3) + MAX_BUFF_LENGTH);
+
+  // Deserialize the JSON document
+  DeserializationError error = deserializeJson(messagesJson, message);
+  // Test if parsing succeeds.
+  if (error) {
+    return;
+  }
+  JsonArray jsonArray = messagesJson.as<JsonArray>();
+  for(JsonVariant elem : jsonArray) {
+    JsonObject messageObj = elem.as<JsonObject>();
+    const char* mtype = messageObj["type"];
+    const char* mvalue = messageObj["value"];
+    const char* mbodypart = messageObj["bodypart"];
+    const int index_bp = get_index_bodypart(connection, mbodypart);
+    store_message(index_bp, mtype, mvalue);
+  }
+}
+
+unsigned int manageAck(IPAddressPort connection){
+  unsigned int index = 0;
+  for( ;index < MAX_BODYNODES_NUMBER && mEnabled[index]; ++index){
+    if(mConnections.conn[index].ip == connection.ip){
+      break;
+    }
+  }
+  if(index == MAX_BODYNODES_NUMBER){
+    return CS_NOTHING;
+  }
+  if(!mEnabled[index]){
+    // This is an ACK coming from a not registered node
+    return CS_WAIT_INIT_ACK;
+  }
+
+  bool sendAck = true;
+  for( ;index < MAX_BODYNODES_NUMBER && mEnabled[index]; ++index){
+    if(mConnections.conn[index].ip == connection.ip){
+      if(mConnections.conn_status[index] == CS_WAIT_ACTION_ACK){
+        mConnections.conn_status[index] = CS_NOTHING;
+        sendAck = false;
+      }
+    }
+  }
+  if(sendAck){
+    return CS_WAIT_INIT_ACK;
+  } else {
+    return CS_NOTHING;
+  }
+}
+
+void setActionToNodes(Action action){
+  unsigned int index = 0;
+  for( ;index < MAX_BODYNODES_NUMBER && mEnabled[index]; ++index){
+    if(mConnections.conn[index].port != 0){
+      if(action.bodypart[0] == '\0'){ // An empty bodypart action is basically a broadcast
+        mConnections.last_action[index] = action;
+        mConnections.conn_status[index] = CS_WAIT_ACTION_ACK;
+      } else if(strstr(mBodyparts[index], action.bodypart)!=NULL){
+        mConnections.last_action[index] = action;
+        mConnections.conn_status[index] = CS_WAIT_ACTION_ACK;
+        return;
+      }
+    }
+  }
+}
+
+Connections &getConnections() {
+  return mConnections;
 }

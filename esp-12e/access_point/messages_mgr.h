@@ -30,11 +30,13 @@
 // Serial is always connected
 
 void initMessages();
-int get_index_bodypart(Connection connection, const char *bodypart);
+int get_index_bodypart(IPAddressPort connection, const char *bodypart);
 void store_message(int index_bodypart, const char *mtype, const char *mvalue);
-Connection get_connection_bodypart(const char *bodypart);
-Connections get_all_connections();
 String getAllMessages();
 void serial_send_messages();
+void parseMessage(IPAddressPort connection, String message);
+unsigned int manageAck(IPAddressPort connection);
+void setActionToNodes(Action action);
+Connections &getConnections();
 
 #endif //__ACCESS_POINT_MESSAGESMGR_H__

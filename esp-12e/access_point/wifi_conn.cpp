@@ -29,7 +29,8 @@ extern "C" {
 }
 char ssid[] = WIFI_SSID;
 char password[] = WIFI_PASS;
-uint16_t port = SERVER_PORT_AP;     // port number of the server
+uint16_t port_sn = SERVER_PORT_AP_SN;
+uint16_t port_n = SERVER_PORT_AP_N;
 byte packetBuffer[MAX_BUFF_LENGTH]; 
 char messagesBuffer[MAX_BUFF_LENGTH]; 
 
@@ -48,7 +49,8 @@ char messagesBuffer[MAX_BUFF_LENGTH];
  */
 
 StatusConnLED mStatusConnLED;
-WiFiUDP mUdpConnection;
+WiFiUDP mUdpConnectionSN;
+WiFiUDP mUdpConnectionN;
 
 void setStatusConnectionHMI_ON(){
   digitalWrite(STATUS_WIFI_CONNECTION_HMI_LED_P, HIGH);
@@ -79,59 +81,84 @@ void initServer(){
   setStatusConnectionHMI_OFF();
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid, password);
-  mUdpConnection.begin(port);
+  mUdpConnectionSN.begin(port_sn);
+  mUdpConnectionN.begin(port_n);
   setStatusConnectionHMI_ON();
 }
 
-void sendACK(IPAddress remote_ip, uint16_t remote_port){
+void sendACK(IPAddressPort connection){
   byte buf_udp [4] = {'A','C','K', '\0'};
-  mUdpConnection.beginPacket(remote_ip, remote_port);
-  mUdpConnection.write(buf_udp, 4);
-  mUdpConnection.endPacket();
+  if(connection.port == port_sn){
+    mUdpConnectionSN.beginPacket(connection.ip, port_sn);
+    mUdpConnectionSN.write(buf_udp, 4);
+    mUdpConnectionSN.endPacket(); 
+  } else if(connection.port == port_n){
+    mUdpConnectionN.beginPacket(connection.ip, port_n);
+    mUdpConnectionN.write(buf_udp, 4);
+    mUdpConnectionN.endPacket(); 
+  }
 }
 
-Connection get_nodes_udp_packets(JsonArray &jsonArray) {
-  int noBytes = mUdpConnection.parsePacket();
+IPAddressPort get_snodes_udp_packets(String &incomingMessage) {
+  int noBytes = mUdpConnectionSN.parsePacket();
   String received_command = "";
-  Connection connection;
+  IPAddressPort connection;
+  connection.port = 0;
   if ( noBytes > 0 ) {
-    int len = mUdpConnection.read(packetBuffer, MAX_BUFF_LENGTH); // read the packet into the buffer
+     // read the packet into the buffer
+    int len = mUdpConnectionSN.read(packetBuffer, MAX_BUFF_LENGTH);
     unsigned int i = 0;
     for(; i < len; ++i) {
       messagesBuffer[i] = packetBuffer[i];
     }
     messagesBuffer[i] = '\0';
-    if(strstr(messagesBuffer, "ACK")  != NULL){
-      sendACK(mUdpConnection.remoteIP(), mUdpConnection.remotePort());
-    } else {
-      DynamicJsonDocument messagesJson(JSON_ARRAY_SIZE(3) + MAX_BUFF_LENGTH);
-  
-      // Deserialize the JSON document
-      DeserializationError error = deserializeJson(messagesJson, messagesBuffer);
-      // Test if parsing succeeds.
-      if (error) {
-        return connection;
-      }
-      jsonArray = messagesJson.as<JsonArray>();
-      connection.remote_ip = mUdpConnection.remoteIP();
-      connection.remote_port = mUdpConnection.remotePort();
-    }
+    incomingMessage = messagesBuffer;
+    connection.ip = mUdpConnectionSN.remoteIP();
+    connection.port = mUdpConnectionSN.remotePort();
   }
   return connection;
 }
 
-void sendActionToNode(Connection connection, String actionMessage){
+IPAddressPort get_nodes_udp_packets(String &incomingMessage) {
+  int noBytes = mUdpConnectionN.parsePacket();
+  String received_command = "";
+  IPAddressPort connection;
+  connection.port = 0;
+  if ( noBytes > 0 ) {
+    // read the packet into the buffer
+    int len = mUdpConnectionN.read(packetBuffer, MAX_BUFF_LENGTH);
+    unsigned int i = 0;
+    for(; i < len; ++i) {
+      messagesBuffer[i] = packetBuffer[i];
+    }
+    messagesBuffer[i] = '\0';
+    incomingMessage = messagesBuffer;
+    connection.ip = mUdpConnectionN.remoteIP();
+    connection.port = mUdpConnectionN.remotePort();
+  }
+  return connection;
+}
+
+void sendActionToNode(IPAddressPort connection, String actionMessage){
   int buf_size = actionMessage.length()+1;
   byte buf_udp [buf_size];
 
   actionMessage.getBytes(buf_udp, buf_size);
-  mUdpConnection.beginPacket(connection.remote_ip, connection.remote_port);
-  mUdpConnection.write(buf_udp, buf_size);
-  mUdpConnection.endPacket(); 
+  if(connection.port == port_sn){
+    mUdpConnectionSN.beginPacket(connection.ip, port_sn);
+    mUdpConnectionSN.write(buf_udp, buf_size);
+    mUdpConnectionSN.endPacket(); 
+  } else if(connection.port == port_n){
+    mUdpConnectionN.beginPacket(connection.ip, port_n);
+    mUdpConnectionN.write(buf_udp, buf_size);
+    mUdpConnectionN.endPacket(); 
+  }
 }
 
-void sendActionToAllNodes(Connections connections, String actionMessage){
+void sendActions(Connections &connections){
   for(unsigned int index = 0; index < connections.num_connections; ++index){
-    sendActionToNode(connections.bodypart[index], actionMessage);
+    if( connections.conn_status[index] == CS_WAIT_ACTION_ACK ){
+      sendActionToNode(connections.conn[index], connections.last_action[index].message);
+    }
   }
 }

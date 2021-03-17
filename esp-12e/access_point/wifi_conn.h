@@ -33,8 +33,9 @@ void setStatusConnectionHMI_OFF();
 void setStatusConnectionHMI_BLINK();
 
 void initServer();
-Connection get_nodes_udp_packets(JsonArray &jsonArray);
-void sendActionToNode(Connection connection, String actionMessage);
-void sendActionToAllNodes(Connections connections, String actionMessage);
+IPAddressPort get_snodes_udp_packets(String &incomingMessage);
+IPAddressPort get_nodes_udp_packets(String &incomingMessage);
+void sendACK(IPAddressPort remote_ip);
+void sendActions(Connections &connections);
 
 #endif //__WIFI_NODE_WIFICONN_H__
