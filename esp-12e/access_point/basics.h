@@ -39,7 +39,7 @@
 #define MAX_BODYPART_LENGTH 20
 #define MAX_TYPE_LENGTH 20
 #define MAX_VALUE_LENGTH 100
-#define MAX_BUFF_LENGTH 500
+#define MAX_BUFF_LENGTH 600
 
 struct Action {
   int type;
@@ -112,6 +112,28 @@ struct StatusConnLED {
 #define BODY_KATANA_TAG           "katana"
 #define BODY_UPPERBODY_TAG        "upperbody"
 #define BODY_LOWERBODY_TAG        "lowerbody"
+
+#define BODY_HEAD_HEX             0xCCC1
+#define BODY_HAND_LEFT_HEX        0xCCC2
+#define BODY_FOREARM_LEFT_HEX     0xCCC3
+#define BODY_UPPERARM_LEFT_HEX    0xCCC4
+#define BODY_BODY_HEX             0xCCC5
+#define BODY_FOREARM_RIGHT_HEX    0xCCC6
+#define BODY_UPPERARM_RIGHT_HEX   0xCCC7
+#define BODY_HAND_RIGHT_HEX       0xCCC8
+#define BODY_LOWERLEG_LEFT_HEX    0xCCC9
+#define BODY_UPPERLEG_LEFT_HEX    0xCCCA
+#define BODY_FOOT_LEFT_HEX        0xCCCB
+#define BODY_LOWERLEG_RIGHT_HEX   0xCCCC
+#define BODY_UPPERLEG_RIGHT_HEX   0xCCCD
+#define BODY_FOOT_RIGHT_HEX       0xCCCE
+#define BODY_UNTAGGED_HEX         0xCCCF
+#define BODY_KATANA_HEX           0xCCD0
+#define BODY_UPPERBODY_HEX        0xCCD1
+#define BODY_LOWERBODY_HEX        0xCCD2
+
+#define DATA_TYPE_ORIENTATION_HEX       0x0000
+
 
 //Action
 #define ACTION_ACTION_TAG       "action"

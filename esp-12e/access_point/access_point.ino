@@ -93,29 +93,43 @@ void setup() {
 }
 
 void loop() {
-  String incomingMessage;
+  String incomingMessage1;
+  String incomingMessage2;
 
   // Wifi SNodes
-  IPAddressPort connection_rec = get_snodes_udp_packets(incomingMessage);
-  if(strstr(incomingMessage.c_str(), "ACK")  != NULL){
-    if(manageAck(connection_rec) == CS_WAIT_INIT_ACK){
-      sendACK(connection_rec);
+  IPAddressPort connection_rec1 = get_snodes_udp_packets(incomingMessage1);
+  IPAddressPort connection_rec2 = get_snodes_udp_packets(incomingMessage2);
+  if(incomingMessage1.length() > 2 ){
+    if(strstr(incomingMessage1.c_str(), "ACK")  != NULL){
+      if(manageAck(connection_rec1) == CS_WAIT_INIT_ACK){
+        sendACK(connection_rec1);
+      }
+    } else {
+      parseMessage(connection_rec1, incomingMessage1);
     }
-  } else {
-    parseMessage(connection_rec, incomingMessage);
+  }
+  if(incomingMessage2.length() > 2 ){
+    if(strstr(incomingMessage2.c_str(), "ACK")  != NULL){
+      if(manageAck(connection_rec2) == CS_WAIT_INIT_ACK){
+        sendACK(connection_rec2);
+      }
+    } else {
+      parseMessage(connection_rec2, incomingMessage2);
+    }
   }
 
   // Wifi Nodes
-  incomingMessage = "";
-  connection_rec = get_nodes_udp_packets(incomingMessage);
-  if(strstr(incomingMessage.c_str(), "ACK")  != NULL){
-    if(manageAck(connection_rec) == CS_WAIT_INIT_ACK){
-      sendACK(connection_rec);
+  String incomingMessage;
+  IPAddressPort connection_rec = get_nodes_udp_packets(incomingMessage);
+  if(incomingMessage.length() > 2 ){
+    if(strstr(incomingMessage.c_str(), "ACK")  != NULL){
+      if(manageAck(connection_rec) == CS_WAIT_INIT_ACK){
+        sendACK(connection_rec);
+      }
+    } else {
+      parseMessage(connection_rec, incomingMessage);
     }
-  } else {
-    parseMessage(connection_rec, incomingMessage);
   }
-
   if(Serial.available( ) > 0) {
     String incomingString = Serial.readString();
     Action action = getActionFromString(incomingString);

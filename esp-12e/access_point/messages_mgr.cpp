@@ -33,6 +33,12 @@ char mMessagesWS_Type[MAX_BODYNODES_NUMBER][MAX_TYPE_LENGTH];
 char mMessagesWS_Value[MAX_BODYNODES_NUMBER][MAX_VALUE_LENGTH];
 bool mMessagesWS_Changed[MAX_BODYNODES_NUMBER];
 
+typedef union
+{
+  float number;
+  byte bytes[16];
+} floatbytes;
+
 /*
  * Initialize and ensure mBodynodes_messages and mBodynodes are empty
  */
@@ -84,32 +90,117 @@ void store_message(int index_bodypart, const char *mtype, const char *mvalue){
 }
 
 void serial_send_messages(){
-  String fullMessage ="[";
-  bool is_first = true;
+  unsigned int tot_nodes = 0;  
   for(unsigned int index = 0;index < MAX_BODYNODES_NUMBER && mEnabled[index]; ++index){
     if(mMessagesWS_Changed[index] == true) {
-      if(!is_first){
-        fullMessage +=",";        
-      }
-      is_first = false;
-      fullMessage +="{\"bodypart\":\"";
-      fullMessage +=mBodyparts[index];
-      fullMessage +="\",\"type\":\"";
-      fullMessage +=mMessagesWS_Type[index];
-      fullMessage +="\",\"value\":\"";
-      fullMessage += mMessagesWS_Value[index];
-      fullMessage += "\"}";
-      mMessagesWS_Changed[index] = false;
+      tot_nodes++;
     }
   }
-  fullMessage += "]";
-  if(!is_first){
-    Serial.println(fullMessage);
+
+  byte fullMessage[22 * tot_nodes];
+  unsigned int count_node = 0;
+  for(unsigned int index = 0;index < MAX_BODYNODES_NUMBER && mEnabled[index]; ++index){
+    if(mMessagesWS_Changed[index] == true) {
+      mMessagesWS_Changed[index] = false;
+      uint16_t bodypart_hex = 0;
+      if(strstr(mBodyparts[index], BODY_HEAD_TAG)!=NULL){
+        bodypart_hex = BODY_HEAD_HEX;
+      } else if(strstr(mBodyparts[index], BODY_HAND_LEFT_TAG)!=NULL){
+        bodypart_hex = BODY_HAND_LEFT_HEX;
+      } else if(strstr(mBodyparts[index], BODY_FOREARM_LEFT_TAG)!=NULL){
+        bodypart_hex = BODY_FOREARM_LEFT_HEX;
+      } else if(strstr(mBodyparts[index], BODY_UPPERARM_LEFT_TAG)!=NULL){
+        bodypart_hex = BODY_UPPERARM_LEFT_HEX;
+      } else if(strstr(mBodyparts[index], BODY_UPPERBODY_TAG)!=NULL){
+        bodypart_hex = BODY_UPPERBODY_HEX;
+      } else if(strstr(mBodyparts[index], BODY_LOWERBODY_TAG)!=NULL){
+        bodypart_hex = BODY_LOWERBODY_HEX;
+      } else if(strstr(mBodyparts[index], BODY_BODY_TAG)!=NULL){
+        bodypart_hex = BODY_BODY_HEX;
+      } else if(strstr(mBodyparts[index], BODY_FOREARM_RIGHT_TAG)!=NULL){
+        bodypart_hex = BODY_FOREARM_RIGHT_HEX;
+      } else if(strstr(mBodyparts[index], BODY_UPPERARM_RIGHT_TAG)!=NULL){
+        bodypart_hex = BODY_UPPERARM_RIGHT_HEX;
+      } else if(strstr(mBodyparts[index], BODY_HAND_RIGHT_TAG)!=NULL){
+        bodypart_hex = BODY_HAND_RIGHT_HEX;
+      } else if(strstr(mBodyparts[index], BODY_LOWERLEG_LEFT_TAG)!=NULL){
+        bodypart_hex = BODY_LOWERLEG_LEFT_HEX;
+      } else if(strstr(mBodyparts[index], BODY_UPPERLEG_LEFT_TAG)!=NULL){
+        bodypart_hex = BODY_UPPERLEG_LEFT_HEX;
+      } else if(strstr(mBodyparts[index], BODY_FOOT_LEFT_TAG)!=NULL){
+        bodypart_hex = BODY_FOOT_LEFT_HEX;
+      } else if(strstr(mBodyparts[index], BODY_LOWERLEG_RIGHT_TAG)!=NULL){
+        bodypart_hex = BODY_LOWERLEG_RIGHT_HEX;
+      } else if(strstr(mBodyparts[index], BODY_UPPERLEG_RIGHT_TAG)!=NULL){
+        bodypart_hex = BODY_UPPERLEG_RIGHT_HEX;
+      } else if(strstr(mBodyparts[index], BODY_FOOT_RIGHT_TAG)!=NULL){
+        bodypart_hex = BODY_FOOT_RIGHT_HEX;
+      } else if(strstr(mBodyparts[index], BODY_UNTAGGED_TAG)!=NULL){
+        bodypart_hex = BODY_UNTAGGED_HEX;
+      } else if(strstr(mBodyparts[index], BODY_KATANA_TAG)!=NULL){
+        bodypart_hex = BODY_KATANA_HEX;
+      } else {
+        // Not a valid bodypart
+        continue;
+      }
+
+      uint16_t type_hex = 0;
+      if(strstr(mMessagesWS_Type[index], "orientation" )!=NULL){
+        type_hex = DATA_TYPE_ORIENTATION_HEX;
+      } else {
+        // Not a valid type
+        continue;
+      }
+      String tokenW = strtok(mMessagesWS_Value[index], "|");
+      String tokenX = strtok(0, "|");
+      String tokenY = strtok(0, "|");
+      String tokenZ = strtok(0, "|");
+
+      floatbytes valW;
+      valW.number = tokenW.toFloat();
+      floatbytes valX;
+      valX.number = tokenX.toFloat();
+      floatbytes valY;
+      valY.number = tokenY.toFloat();
+      floatbytes valZ;
+      valZ.number = tokenZ.toFloat();
+
+      // Start of the packet
+      fullMessage[count_node * 22 + 0] = 0xFF;
+      fullMessage[count_node * 22 + 1] = 0xFF;
+      
+      fullMessage[count_node * 22 + 2] = (byte)(bodypart_hex >> 8);
+      fullMessage[count_node * 22 + 3] = (byte)(bodypart_hex & 0x00FF);
+      
+      fullMessage[count_node * 22 + 4] = (byte)(type_hex >> 8);
+      fullMessage[count_node * 22 + 5] = (byte)(type_hex & 0x00FF);
+      for(unsigned int i = 0; i < 4; ++i){
+        fullMessage[count_node * 22 + 6 + i] = valW.bytes[3-i];
+      }
+      for(unsigned int i = 0; i < 4; ++i){
+        fullMessage[count_node * 22 + 10 + i] = valX.bytes[3-i];
+      }
+      for(unsigned int i = 0; i < 4; ++i){
+        fullMessage[count_node * 22 + 14 + i] = valY.bytes[3-i];
+      }
+      for(unsigned int i = 0; i < 4; ++i){
+        fullMessage[count_node * 22 + 18 + i] = valZ.bytes[3-i];
+      }
+      //for(unsigned int i = 0; i < 22; ++i){
+      //  Serial.println(fullMessage[i], HEX);
+      //}
+      //Serial.println("-------");
+      //Serial.println();
+      count_node++;
+    }
+  }
+  if(tot_nodes > 0) {
+    Serial.write(fullMessage, 22 * tot_nodes);
   }
 }
 
 void parseMessage(IPAddressPort connection, String message){
-  DynamicJsonDocument messagesJson(JSON_ARRAY_SIZE(3) + MAX_BUFF_LENGTH);
+  DynamicJsonDocument messagesJson(JSON_ARRAY_SIZE(5) + MAX_BUFF_LENGTH);
 
   // Deserialize the JSON document
   DeserializationError error = deserializeJson(messagesJson, message);
