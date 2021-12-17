@@ -27,10 +27,10 @@ Main files in each project:
   - For more info about the functionalities watch this video: https://www.youtube.com/watch?v=LVsrDDIUEkY&t=5s
   - armature_config_XXX.json : bodynodes configuration files containing the bodypart-bones relations
   - example_animation.json : example of bodynodes animation data file
-- Cool functions we implemented to help using bodynodes animation data:
+Cool functions we implemented to help using bodynodes animation data:
   - Walk algorithm: https://www.youtube.com/watch?v=99TttiHgcV4&t=11s
   - Steady feet algortihm: https://www.youtube.com/watch?v=o5ng-tRwjA0
-- Other videos:
+Other videos:
   - How to wear the Bodynodes: https://www.youtube.com/watch?v=LUTw81M7dCs
   - One Shot Recordings with Wifi SNodes: https://www.youtube.com/watch?v=ZCPGYsXJy1M
   - First Animation on Blender: https://www.youtube.com/watch?v=JCAFX81Wjso
