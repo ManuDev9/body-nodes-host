@@ -1,26 +1,27 @@
+
 /**
-MIT License
-
-Copyright (c) 2021 Manuel Bottini
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+ * MIT License
+ *
+ * Copyright (c) 2021 Manuel Bottini
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 
 #include "WifiHostCommunicator.h"
 
@@ -31,7 +32,7 @@ SOFTWARE.
 #include <sys/types.h> 
 
 void startFun(WifiHostCommunicator *comm) {
-  while(comm->checkAllOk());
+  comm->run_background();
 }
 
 void WifiHostCommunicator::start() {
@@ -69,13 +70,14 @@ void WifiHostCommunicator::stop() {
   whc_toStop = true;
   close(whc_connector.socket_id);
   whc_messagesListenerThread.join();
+  removeAllListeners();
 }
 
 void WifiHostCommunicator::update() {
   printf("WifiHostCommunicator::update()\n");
 }
 
-bool WifiHostCommunicator::getMessageVaue(
+bool WifiHostCommunicator::getMessageValue(
   std::string player,
   std::string bodypart,
   std::string sensortype,
@@ -153,6 +155,28 @@ bool WifiHostCommunicator::checkAllOk() {
   return !whc_toStop;
 }
 
+void WifiHostCommunicator::run_background() {
+  while(checkAllOk());
+}
+
+bool WifiHostCommunicator::addListener(BodynodeListener *listener) {
+  if(listener!=nullptr) {
+    whc_bodynodesListeners.push_back(listener);
+    return true;
+  }
+  return false;
+}
+
+void WifiHostCommunicator::removeListener(BodynodeListener *listener) {
+  if(listener!=nullptr) {
+    whc_bodynodesListeners.remove(listener);
+  }
+}
+
+void WifiHostCommunicator::removeAllListeners() {
+  whc_bodynodesListeners.clear();
+}
+
 void WifiHostCommunicator::receiveBytes() {
   sockaddr_in remote_socket;
   unsigned int socket_len = sizeof(remote_socket);
@@ -191,6 +215,7 @@ void WifiHostCommunicator::sendACK(IPConnectionData &connectionData) {
 bool WifiHostCommunicator::checkForACK(IPConnectionData &connectionData) {
   for(uint16_t index = 0; index< connectionData.num_received_bytes-2;++index){
     if(connectionData.received_bytes[index] == 'A' && connectionData.received_bytes[index+1] == 'C' && connectionData.received_bytes[index+2] == 'K') {
+      connectionData.last_rec_time = time(0);
       return true;
     }
   }
@@ -202,6 +227,7 @@ void WifiHostCommunicator::checkForMessages(IPConnectionData &connectionData) {
     //std::cout << "checkForMessages - connetionData.received_bytes =" << connectionData.received_bytes << '\n';
     nlohmann::json jsonMessages = nlohmann::json::parse(connectionData.received_bytes);
     parseJSON(connectionData.ip_address, jsonMessages);
+    connectionData.last_rec_time = time(0);
   }
 }
 
@@ -217,13 +243,24 @@ void WifiHostCommunicator::parseJSON(sockaddr_in &connection, nlohmann::json &js
       !message.contains(MESSAGE_VALUE_TAG)) {
 		  
       printf("Json message received is incomplete\n");
-      return;
+      continue;
     }
     std::string player = message[MESSAGE_PLAYER_TAG];
     std::string bodypart = message[MESSAGE_BODYPART_TAG];
-    std::string sensortype = message[MESSAGE_SENSORTYPE_TAG];
+    std::string sensortype = message[MESSAGE_SENSORTYPE_TAG];    
     whc_connectionsMap[player+"_"+bodypart] = connection;
-    whc_messagesMap[player+"_"+bodypart+"_"+sensortype] = message[MESSAGE_VALUE_TAG];
+
+    whc_messagesMap[player+"_"+bodypart+"_"+sensortype] = message[MESSAGE_VALUE_TAG];    
+    for( std::list<BodynodeListener*>::iterator it_listener = whc_bodynodesListeners.begin(); 
+        it_listener != whc_bodynodesListeners.end(); it_listener ++) {
+
+      if( (*it_listener)->isOfInterest(player, bodypart, sensortype) ){
+	std::string value = message[MESSAGE_VALUE_TAG].dump();
+        (*it_listener)->onMessageReceived(player, bodypart, sensortype, value);
+      }
+      
+    }
+    
     //std::cout << "whc_messagesMap = "<< whc_messagesMap[player+"_"+bodypart+"_"+sensortype] << '\n';
   }
 }

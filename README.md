@@ -8,10 +8,16 @@ We have the following hosts:
     - Let you load from files or bake the animation data in the armature to use and modify
     - Let you extract your animation own data in files so that you can pass them easily
 	- Let you load and save .fbx animations that can be used in other frameworks (Unity for example)
-  - Blender Serial:
-    - Works with 11 body parts. It has to be used with the esp-12e/access_point which connects serially with the PC and wifi with the snodes
   - Blender Wifi:
-    - Works with 11 body parts. On Windows the mobile hotspot has a maximum of 8 wifi connected devices at the same time. In order to get data from all 11 nodes you need Wifi Super Nodes, which are wifi nodes that can collect info from other wifi nodes. Otherwise you need to take multiple sessions of the same movements with the different bodypart nodes
+    - Works with 11 body parts. On Windows the mobile hotspot has a maximum of 8 wifi connected devices at the same time. In order to get data from all 11 nodes you need Wifi Super Nodes (production environment), which are wifi nodes that can collect info from other wifi nodes. Otherwise you need to take multiple sessions of the same movements with the different bodypart nodes
+- PC Unity:
+  - Dev package to easily integrate Bodynodes on any 3D game
+
+- Raspberry Libraries:
+  - Python: by using our module you can easily integrate Bodynodes in any python project involving python
+  - Cpp:  by using our module you can easily integrate Bodynodes in any python project involving c++
+
+Wifi nodes that can collect info from other wifi nodes. Otherwise you need to take multiple sessions of the same movements with the different bodypart nodes
 
 Introductions and animation examples video can be found at these links:
   - Blender UI Introduction - 1: https://www.youtube.com/watch?v=stgBOEd9ngc

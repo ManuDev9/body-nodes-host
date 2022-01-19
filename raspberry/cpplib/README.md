@@ -1,7 +1,11 @@
+
+
 Build:
 
-g++ -o test test.cpp WifiHostCommunicator.cp -lpthread
+  ./build.sh
 
+or:
 
-You can run "test" and the program will listen for input from the user.
-Read the code to know more
+  g++ -o test test.cpp WifiHostCommunicator.cp -lpthread
+
+It wuild build a test program to check the main functionalities. Have a look at the code to see what happens and how to interact with the Bodynodes objects

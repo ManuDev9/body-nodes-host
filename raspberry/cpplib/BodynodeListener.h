@@ -23,26 +23,15 @@
  * SOFTWARE.
  */
 
-#include "BodynodeListener.h"
-
 #include <string>
-#include "json.hpp"
 
-#ifndef __BODYNODES_HOST_INTERFACE
-#define __BODYNODES_HOST_INTERFACE
+#ifndef __BODYNODE_LISTENER
+#define __BODYNODE_LISTENER
 
-class BodynodesHostInterface {
+class BodynodeListener {
 public:
-  virtual void start() = 0;
-  virtual void stop() = 0;
-  virtual void update() = 0;
-  virtual bool getMessageValue(std::string player, std::string bodypart, std::string sensortype, float outvalue[]) = 0;
-  virtual void addAction(nlohmann::json &action) = 0;
-  virtual void sendAllActions() = 0;
-  virtual bool addListener(BodynodeListener *listener) = 0;
-  virtual void removeListener(BodynodeListener *listener) = 0;
-  virtual void removeAllListeners() = 0;
-
+  virtual void onMessageReceived(std::string player, std::string bodypart, std::string sensortype, std::string value) = 0;
+  virtual bool isOfInterest(std::string player, std::string bodypart, std::string sensortype) = 0;
 };
 
-#endif // __BODYNODES_HOST_INTERFACE
+#endif // __BODYNODE_LISTENER

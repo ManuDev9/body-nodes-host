@@ -107,10 +107,6 @@ class ServerConnection(threading.Thread):
 		# print("ServerConnection ready")
 		self.killed = False
 		parsing = False
-		datapacket = [0] * 24
-		ipacket = 0
-		byte_prev = 0x00
-		packet_size = 24
 		while not self.killed:
 
 			# If you are not receiving anything, check the port 12345
