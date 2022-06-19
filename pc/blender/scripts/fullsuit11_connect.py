@@ -1,6 +1,6 @@
 # MIT License
 # 
-# Copyright (c) 2019-2021 Manuel Bottini
+# Copyright (c) 2019-2022 Manuel Bottini
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -61,7 +61,9 @@ fullsuit_keys = [
 	"upperarm_right",
 	"upperbody",
 	"upperleg_left",
-	"upperleg_right"
+	"upperleg_right",
+	"hand_left",
+	"hand_right"
 ]
 
 # This script is made for the FullSuit-11 and it is required to create connections with the nodes
@@ -94,9 +96,9 @@ def parse_message(data_str):
 		if data_json != None:
 			if isinstance(data_json, list):
 				for data_json_single in data_json:
-					fullsuit11_recording.read_orientations(data_json_single)
+					fullsuit11_recording.read_sensordata(data_json_single)
 			else:
-				fullsuit11_recording.read_orientations(data_json)
+				fullsuit11_recording.read_sensordata(data_json)
 
 class ServerConnection(threading.Thread):
 	def __init__(self, name, socket):
@@ -178,46 +180,22 @@ def stop_server():
 	bodynodes_panel_connect["server"]["status"] = "Server not running"
 	bodynodes_panel_connect["server"]["running"] = False
 
-
-def redirect_bodypart(bodypart):
-	# print("redirect_bodypart")
-	global bodynodes_armature_config_rec
-	if bodypart in bodynodes_armature_config_rec.keys() and bodynodes_armature_config_rec[bodypart]["bone_name"] != "":
-		return bodynodes_armature_config_rec[bodypart]["bone_name"]
-	return "none"
-
 def create_bodynodesobjs():
 	global fullsuit_keys
 	for bodypart in fullsuit_keys:
-		if bodypart not in bpy.data.objects:
+		if bodypart+"_ori" not in bpy.data.objects and "hand_" not in bodypart:
+			# For now we are not having orientation hands objects
 			bpy.ops.object.add()
-			bpy.context.active_object.name = bodypart
-			bpy.context.active_object.location = Vector((0,0,-10))
+			bpy.context.active_object.name = bodypart+"_ori"
+			bpy.context.active_object.location = Vector((0,0,-20))
 			bpy.context.active_object.rotation_mode = "QUATERNION"
-
-def get_bodynodeobj(bodypart):
-	if bodypart not in bpy.data.objects:
-		print(bodypart+" bodynodeobj has not been found")
-		return None
-	return bpy.data.objects[bodypart]
-
-def get_bone_global_rotation_quaternion(player_selected, bone):
-	if bone not in bpy.data.objects[player_selected].pose.bones:
-		print(bodypart+" bone has not been found")
-		return None
-	return (bpy.data.objects[player_selected].matrix_world @ bpy.data.objects[player_selected].pose.bones[bone].matrix).to_quaternion()
-
-def get_bodynode_rotation_quaternion(bodypart):
-	if bodypart not in bpy.data.objects:
-		print(bodypart+" hasn't been found")
-		return None
-	return bpy.data.objects[bodypart].rotation_quaternion
-
-def set_bodynode_rotation_quaternion(bodypart, rotation_quaternion):
-	if bodypart not in bpy.data.objects:
-		print(bodypart+" hasn't been found")
-		return
-	bpy.data.objects[bodypart].rotation_quaternion = rotation_quaternion
+		if "hand_" in bodypart:
+			for finger in fullsuit11_recording.bodynode_fingers_init:
+				if bodypart+"_"+finger not in bpy.data.objects:
+					bpy.ops.object.add()
+					bpy.context.active_object.name = bodypart+"_"+finger
+					bpy.context.active_object.location = Vector((0,0,-30))
+					bpy.context.active_object.rotation_mode = "XYZ"
 
 class PANEL_PT_BodynodesConnect(bpy.types.Panel):
 	bl_space_type = 'VIEW_3D'

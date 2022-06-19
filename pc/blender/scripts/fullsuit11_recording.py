@@ -1,14 +1,14 @@
 # MIT License
-# 
-# Copyright (c) 2019-2021 Manuel Bottini
-# 
+#
+# Copyright (c) 2019-2022 Manuel Bottini
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
 
@@ -27,6 +27,7 @@ import bpy
 from mathutils import *
 import time
 import queue
+import math
 from bpy_extras.io_utils import ExportHelper, ImportHelper
 
 # This script is made for the FullSuit-11 and it is required to record bodynodes animations
@@ -36,7 +37,17 @@ player_selected_rec = "None"
 bodynodes_armature_config_rec = {}
 bodynodes_saved_armature = {}
 
-bodynodes_objs_init = [
+GLOVE_ANGLE_MIGNOLO=0
+GLOVE_ANGLE_ANULARE=1
+GLOVE_ANGLE_MEDIO  =2
+GLOVE_ANGLE_INDICE =3
+GLOVE_ANGLE_POLLICE=4
+GLOVE_TOUCH_MIGNOLO=5
+GLOVE_TOUCH_ANULARE=6
+GLOVE_TOUCH_MEDIO  =7
+GLOVE_TOUCH_INDICE =8
+
+bodynode_bones_init = [
 	"lowerarm_left",
 	"lowerarm_right",
 	"head",
@@ -48,17 +59,20 @@ bodynodes_objs_init = [
 	"upperarm_right",
 	"upperbody",
 	"upperleg_left",
-	"upperleg_right"
+	"upperleg_right",
+	"hand_left",
+	"hand_right"
 ]
+
+bodynode_fingers_init = [ "mignolo", "anulare", "medio", "indice", "pollice" ]
 
 bodynodes_tpos = {}
 
 bodynodes_data = {
-	"targetQuat": {},
-	"changed": {},
-	"offsetQuat": {},
-	"readQuat": {},
-	"reoriQuat": {},
+	"offsetOrientationAbs": {},
+	"readOrientationAbs": {},
+	"readGloveAngle":{},
+	"readGloveTouch":{},
 	"recording": False,
 	"take": None,
 	"track" : True
@@ -83,29 +97,46 @@ def main_read_orientations():
 		return 0.02
 	# The orientation object is rotated to give a visual meaning to where the "forward" is in the virtual world
 	env_orientation = bpy.data.objects[player_selected_rec+"_ori"].rotation_quaternion @ Quaternion((-0.707107, 0.707107,0 ,0))
-	for bodypart in bodynodes_data["readQuat"]:
-		if bodypart in bodynodes_data["changed"] and bodynodes_data["changed"][bodypart]:
-			player_bodypart = get_bodynodeobj(bodypart)
-			if bodypart not in bodynodes_data["offsetQuat"]:			
-				bodynodes_data["offsetQuat"][bodypart] = bodynodes_data["readQuat"][bodypart].inverted() @ env_orientation.inverted() @ get_bone_global_rotation_quaternion(player_selected_rec, bodypart)
+	for bodypart in bodynodes_data["readOrientationAbs"]:
+		if bodynodes_data["readOrientationAbs"][bodypart]:
+			player_bodypart = get_bodynodeobj_ori(bodypart)
+			if bodypart not in bodynodes_data["offsetOrientationAbs"]:
+				bodynodes_data["offsetOrientationAbs"][bodypart] = bodynodes_data["readOrientationAbs"][bodypart].inverted() @ env_orientation.inverted() @ get_bone_global_rotation_quaternion(player_selected_rec, bodypart)
 
 			# Recompute only with what is changing, instead of everything every time
-			bodynodes_data["targetQuat"][bodypart] = env_orientation @ bodynodes_data["readQuat"][bodypart] @ bodynodes_data["offsetQuat"][bodypart] 
-			player_bodypart.rotation_quaternion = bodynodes_data["targetQuat"][bodypart]
+			target_ori = env_orientation @ bodynodes_data["readOrientationAbs"][bodypart] @ bodynodes_data["offsetOrientationAbs"][bodypart] 
+			player_bodypart.rotation_quaternion = target_ori
 			if bodynodes_data["recording"]:
 				recordOrientation(player_bodypart, bodypart)
 
-			bodynodes_data["changed"][bodypart] = False
+			bodynodes_data["readOrientationAbs"][bodypart] = None
+
+	for bodypart in bodynodes_data["readGloveAngle"]:
+		if bodynodes_data["readGloveAngle"][bodypart]:
+			for finger in bodynodes_data["readGloveAngle"][bodypart]:
+				#print("This bodypart glove angle changed = " + bodypart + " " + finger)
+				#player_bodypart = get_bodynodeobj_glove(bodypart, finger)
+				#print("player_bodypart = "+player_bodypart)
+				player_bodynodeobj = get_bodynodeobj_glove(bodypart, finger)
+				#print(bodynodes_data["readGloveAngle"][bodypart][finger])
+				player_bodynodeobj.rotation_euler[0] = float(bodynodes_data["readGloveAngle"][bodypart][finger]) * math.pi / 180
+		bodynodes_data["readGloveAngle"][bodypart] = None
+
+	for bodypart in bodynodes_data["readGloveTouch"]:
+		if bodynodes_data["readGloveTouch"][bodypart]:
+			# print("This bodypart glove touch changed = " + bodypart)
+			# Depending on the touch and bodypart, you can do different things
+			bodynodes_data["readGloveTouch"][bodypart] = None
 
 	return 0.02
 
 def reinit_bn_data():
 	global bodynodes_data
-	bodynodes_data["targetQuat"] = {}
-	bodynodes_data["offsetQuat"] = {}
-	bodynodes_data["readQuat"] = {}
-	bodynodes_data["reoriQuat"] = {}
-	bodynodes_data["initOrieZ"] = {}
+	bodynodes_data["offsetOrientationAbs"] = {}
+	bodynodes_data["readOrientationAbs"] = {}
+
+	bodynodes_data["readGloveAngle"] = {}
+	bodynodes_data["readGloveTouch"] = {}
 
 def load_armature_config_rec(filepath):
 	global bodynodes_armature_config_rec
@@ -131,7 +162,7 @@ def load_armature():
 	for bodypart in bodynodes_armature_config_rec.keys():
 		if bodynodes_armature_config_rec[bodypart]["bone_name"] == "":
 			continue
-		player_bodypart = get_bodynodeobj(bodypart)
+		player_bodypart = get_bodynodeobj_ori(bodypart)
 		player_bodypart.rotation_quaternion = bodynodes_saved_armature[bodypart]
 
 def save_armature():
@@ -141,7 +172,7 @@ def save_armature():
 	for bodypart in bodynodes_armature_config_rec.keys():
 		if bodynodes_armature_config_rec[bodypart]["bone_name"] == "":
 			continue
-		player_bodypart = get_bodynodeobj(bodypart)
+		player_bodypart = get_bodynodeobj_ori(bodypart)
 		bodynodes_saved_armature[bodypart] = Quaternion((player_bodypart.rotation_quaternion))
 
 def reset_armature():
@@ -200,21 +231,19 @@ def read_sensordata(data_json):
 
 	if data_json["sensortype"] == "orientation_abs":
 		read_orientations(data_json)
-	elif data_json["sensortype"] == "orientation_abs":
+	elif data_json["sensortype"] == "glove":
+		read_glove(data_json)
+	elif data_json["sensortype"] == "acceleration_abs":
 		print("Acceleration data is not yet used")
 
 def read_orientations(data_json):
-		
-	bodypart_o = data_json["bodypart"] 
+
+	bodypart_o = data_json["bodypart"]
 	# print("read_orientations")
 	# print(bodynodes_data)
 	if not bodynodes_data["track"]:
 		return
-	
-	if "values" not in data_json:
-		print("Field values missing from received data_json")
-		return
-	
+
 	if bodypart_o not in bodynodes_armature_config_rec.keys():
 		print("Bodypart "+str(bodypart_o)+" not in bodynodes configuration")
 		return
@@ -222,21 +251,53 @@ def read_orientations(data_json):
 	bodypart = redirect_bodypart(bodypart_o) # bodypart redirection
 	if player_selected_rec not in bpy.data.objects:
 		print(player_selected_rec + " not found, Select a player")
-		return 
-	
-	if bodypart not in bpy.data.objects[player_selected_rec].pose.bones:
-		print(bodypart+" bone has not been found")
 		return
 
-	bodynodes_data["readQuat"][bodypart] = createQuanternion(bodypart_o, data_json["values"])
+	if not get_bodynodeobj_ori(bodypart):
+		return
 
-	bodynodes_data["changed"][bodypart] = True
+	bodynodes_data["readOrientationAbs"][bodypart] = createQuanternion(bodypart_o, data_json["value"])
+
+def read_glove(data_json):
+	bodypart_o = data_json["bodypart"]
+	bodypart = redirect_bodypart(bodypart_o) # bodypart redirection
+
+	# Digital events will always be collected
+	bodynodes_data["readGloveTouch"][bodypart] = {}
+	bodynodes_data["readGloveTouch"][bodypart][bodynode_fingers_init[0]] = data_json["value"][GLOVE_TOUCH_MIGNOLO]
+	bodynodes_data["readGloveTouch"][bodypart][bodynode_fingers_init[1]] = data_json["value"][GLOVE_TOUCH_ANULARE]
+	bodynodes_data["readGloveTouch"][bodypart][bodynode_fingers_init[2]] = data_json["value"][GLOVE_TOUCH_MEDIO]
+	bodynodes_data["readGloveTouch"][bodypart][bodynode_fingers_init[3]] = data_json["value"][GLOVE_TOUCH_INDICE]
+
+	# print("read_orientations")
+	# print(bodynodes_data)
+	if not bodynodes_data["track"]:
+		return
+
+	if bodypart_o not in bodynodes_armature_config_rec.keys():
+		print("Bodypart "+str(bodypart_o)+" not in bodynodes configuration")
+		return
+
+	if player_selected_rec not in bpy.data.objects:
+		print(player_selected_rec + " not found, Select a player")
+		return
+
+	if not get_bodynodeobj_glove(bodypart, bodynode_fingers_init[0]):
+		return
+
+	bodynodes_data["readGloveAngle"][bodypart] = {}
+	bodynodes_data["readGloveAngle"][bodypart][bodynode_fingers_init[0]] = data_json["value"][GLOVE_ANGLE_MIGNOLO]
+	bodynodes_data["readGloveAngle"][bodypart][bodynode_fingers_init[1]] = data_json["value"][GLOVE_ANGLE_ANULARE]
+	bodynodes_data["readGloveAngle"][bodypart][bodynode_fingers_init[2]] = data_json["value"][GLOVE_ANGLE_MEDIO]
+	bodynodes_data["readGloveAngle"][bodypart][bodynode_fingers_init[3]] = data_json["value"][GLOVE_ANGLE_INDICE]
+	bodynodes_data["readGloveAngle"][bodypart][bodynode_fingers_init[4]] = data_json["value"][GLOVE_ANGLE_POLLICE]
+	#print("data = "+str(data_json["value"]))
 
 def info_dialog_rec(text):
 	global info_dialog_rec_obj
 	info_dialog_rec_obj["text"] = text
 	bpy.ops.object.dialog_rec_operator('INVOKE_DEFAULT')
-						
+
 def recordOrientation(player_bodypart, bodypart):
 	global bodynodes_data
 	global bodynodes_takes
@@ -247,7 +308,7 @@ def recordOrientation(player_bodypart, bodypart):
 	player_bodypart.keyframe_insert(data_path='rotation_quaternion', frame=(keyframe_info["frame_current"]))
 
 	if bodypart not in bodynodes_takes[bodynodes_data["take"]]:
-		bodynodes_takes[bodynodes_data["take"]][bodypart] = []	
+		bodynodes_takes[bodynodes_data["take"]][bodypart] = []
 
 	bodynodes_takes[bodynodes_data["take"]][bodypart].append(keyframe_info)
 
@@ -256,8 +317,8 @@ def clear_any_recording():
 	start = bpy.context.scene.frame_start
 	end = bpy.context.scene.frame_end
 	for fc in range(start, end+1):
-		for bodypart in bodynodes_data["readQuat"].keys():
-			player_bodypart = get_bodynodeobj(bodypart)
+		for bodypart in bodynodes_data["readOrientationAbs"].keys():
+			player_bodypart = get_bodynodeobj_ori(bodypart)
 			try:
 				player_bodypart.keyframe_delete(data_path='rotation_quaternion', frame=(fc))
 			except:
@@ -267,7 +328,7 @@ def take_recording():
 	global bodynodes_data
 	global bodynodes_takes
 	global bodynodes_panel_rec
-	
+
 	# print("take_recording")
 	if bodynodes_data["take"]==None:
 		print("Select which Take first")
@@ -303,7 +364,7 @@ def apply_recording(which):
 			continue
 		bodypart_keyframes = bodynodes_takes[which][bodypart]
 		for keyframe_info in bodypart_keyframes:
-			player_bodypart = get_bodynodeobj(bodypart)
+			player_bodypart = get_bodynodeobj_ori(bodypart)
 			player_bodypart.rotation_quaternion = keyframe_info["rotation_quaternion"]
 			player_bodypart.keyframe_insert(data_path='rotation_quaternion', frame=(keyframe_info["frame_current"]))
 
@@ -324,7 +385,7 @@ def find_players():
 		if "BNP" in bpy_object.name_full:
 			if "_pos" not in bpy_object.name_full and "_ori" not in bpy_object.name_full:
 				players_available = players_available + ((bpy_object.name_full+'', bpy_object.name_full+'', ''),)
-	
+
 	bpy.types.Scene.players_list_recording = bpy.props.EnumProperty(items= players_available,
 		name = "Player",
 		description = "Player to consider for recording",
@@ -347,23 +408,60 @@ def who_got_bodynodes():
 def remove_bodynodes_from_player(player_selected_rec):
 	if player_selected_rec not in bpy.data.objects:
 		return
-	for bodypart in bodynodes_objs_init:
+	for bodypart in bodynode_bones_init:
+		if bodypart not in bpy.data.objects[player_selected_rec].pose.bones:
+			print(bodypart + " bone is not in armature")
+			continue
 		if "Copy Rotation" in bpy.data.objects[player_selected_rec].pose.bones[bodypart].constraints:
 			bpy.data.objects[player_selected_rec].pose.bones[bodypart].constraints.remove(
 				bpy.data.objects[player_selected_rec].pose.bones[bodypart].constraints["Copy Rotation"]
 			)
-		
+		if "hand_" in bodypart:
+			for finger in bodynode_fingers_init:
+				for index in range(1, 4):
+					bone_finger = bodypart + "_" + finger + "_" + str(index)
+					if bone_finger in bpy.data.objects[player_selected_rec].pose.bones:
+						if "Copy Rotation" in bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints:
+							bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints.remove(
+								bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints["Copy Rotation"]
+							)
+
 def apply_bodynodes_to_player(player_selected_rec):
 	if player_selected_rec not in bpy.data.objects:
 		return
 	for bodypart in bodynodes_armature_config_rec.keys():
 		if bodynodes_armature_config_rec[bodypart]["bone_name"] == "":
 			continue
-			
-		bpy.data.objects[bodypart].rotation_quaternion = get_bone_global_rotation_quaternion(player_selected_rec, bodypart)
+
+		# We don't need to set the global rotation of the bodynodeobj_glove. Glove angle data is relative
+		if "hand_" in bodypart:
+			for finger in bodynode_fingers_init:
+				bodynodeobj_glove_finger = get_bodynodeobj_glove(bodypart, finger)
+				for index in range(1, 4):
+					bone_finger = bodypart + "_" + finger + "_" + str(index)
+					if bone_finger in bpy.data.objects[player_selected_rec].pose.bones:
+						if "Copy Rotation" not in bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints:
+							bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints.new(type = 'COPY_ROTATION')
+							bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints["Copy Rotation"].target = bodynodeobj_glove_finger
+							bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints["Copy Rotation"].owner_space = 'LOCAL'
+							bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints["Copy Rotation"].use_y = True
+							bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints["Copy Rotation"].use_y = False
+							bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints["Copy Rotation"].use_z = False
+
+		bodynodeobj_ori = get_bodynodeobj_ori(bodypart)
+		if bodynodeobj_ori == None:
+			print(bodypart + " bodynodeobj_ori does not exist")
+			continue
+
+		if bodypart not in bpy.data.objects[player_selected_rec].pose.bones:
+			print(bodypart + " bone is not in armature")
+			continue
+
+		bodynodeobj_ori.rotation_quaternion = get_bone_global_rotation_quaternion(player_selected_rec, bodypart)
 		if "Copy Rotation" not in bpy.data.objects[player_selected_rec].pose.bones[bodypart].constraints:
 			bpy.data.objects[player_selected_rec].pose.bones[bodypart].constraints.new(type = 'COPY_ROTATION')
-			bpy.data.objects[player_selected_rec].pose.bones[bodypart].constraints["Copy Rotation"].target = bpy.data.objects[bodypart]
+			bpy.data.objects[player_selected_rec].pose.bones[bodypart].constraints["Copy Rotation"].target = bodynodeobj_ori
+
 
 def enable_tracking():
 	bodynodes_data["track"] = True
@@ -378,13 +476,13 @@ def take_recording_fun(self, context):
 	clear_any_recording()
 	bodynodes_data["take"] = which
 	apply_recording(which)
-		
+
 def change_recording_player_fun(self, context):
 	global player_selected_rec
 
 	remove_bodynodes_from_player(player_selected_rec)
 	player_selected_rec = self.players_list_recording
-	
+
 	if player_selected_rec == "None":
 		return
 	if player_selected_rec+"_pos" not in bpy.data.objects:
@@ -443,15 +541,21 @@ def redirect_bodypart(bodypart):
 		return bodynodes_armature_config_rec[bodypart]["bone_name"]
 	return "none"
 
-def get_bodynodeobj(bodypart):
-	if bodypart not in bpy.data.objects:
-		print(bodypart+" bodynodeobj has not been found")
+def get_bodynodeobj_ori(bodypart):
+	if bodypart+"_ori" not in bpy.data.objects:
+		print(bodypart+" bodynodeobj orientation has not been found")
 		return None
-	return bpy.data.objects[bodypart]
+	return bpy.data.objects[bodypart+"_ori"]
+
+def get_bodynodeobj_glove(bodypart, finger):
+	if bodypart+"_"+finger not in bpy.data.objects:
+		print(bodypart+" bodynodeobj glove has not been found")
+		return None
+	return bpy.data.objects[bodypart+"_"+finger]
 
 def get_bone_global_rotation_quaternion(player_selected, bone):
 	if bone not in bpy.data.objects[player_selected].pose.bones:
-		print(bodypart+" bone has not been found")
+		print(bone+" bone has not been found")
 		return None
 	return (bpy.data.objects[player_selected].matrix_world @ bpy.data.objects[player_selected].pose.bones[bone].matrix).to_quaternion()
 
@@ -491,7 +595,7 @@ class PANEL_PT_BodynodesRecording(bpy.types.Panel):
 		row = layout.row()
 		row.operator("bodynodes.load_armature_config_rec", text="Load Bones Config")
 		row.enabled = True
-			
+
 		if not bodynodes_armature_config_rec:
 			row = layout.row()
 			row.scale_y = 1.0
@@ -517,7 +621,7 @@ class PANEL_PT_BodynodesRecording(bpy.types.Panel):
 		col2.operator("bodynodes.enabledisable_tracking", 
 			text="Disable" if bodynodes_data["track"] else "Enable")
 		col2.enabled = True
-	
+
 		row = layout.row()
 		row.scale_y = 1.0
 		col1 = row.column()
@@ -533,7 +637,7 @@ class PANEL_PT_BodynodesRecording(bpy.types.Panel):
 		col3 = row.column()
 		col3.operator("bodynodes.reset_armature", text="Reset")
 		col3.enabled = True
-		
+
 		row = layout.row()
 		row.scale_y = 1.0
 		col1 = row.column()
@@ -560,7 +664,7 @@ class PANEL_PT_BodynodesRecording(bpy.types.Panel):
 		layout.label(text="Recording:   " + bodynodes_panel_rec["recording"]["status"])
 		row = layout.row()
 		row.prop(context.scene, 'take_recording_list', expand=True)
-		
+
 		row = layout.row()
 		row.scale_y = 1.0
 		col1 = row.column()
@@ -647,12 +751,12 @@ class BodynodesResetPosition2Operator(bpy.types.Operator):
 		reset_position_2()
 		return {'FINISHED'}
 
-class BodynodesChangeArmatureConfigMenu(bpy.types.Operator) : 
-	bl_idname = "bodynodes.change_armature_config"  
-	bl_label = "Change Armature Config"  
+class BodynodesChangeArmatureConfigMenu(bpy.types.Operator) :
+	bl_idname = "bodynodes.change_armature_config"
+	bl_label = "Change Armature Config"
 	bl_description = "Change the armature configuration for axis, bodypart, Bodynodes sensor"
-	bl_options = {"REGISTER", "UNDO"} 
-	
+	bl_options = {"REGISTER", "UNDO"}
+
 	bodypart_to_change = bpy.props.EnumProperty(items= (
 												 ('none', 'none', ''),
 												 ('head', 'head', ''),
@@ -672,12 +776,12 @@ class BodynodesChangeArmatureConfigMenu(bpy.types.Operator) :
 	bones_items = ( )
 
 	bones_items = bones_items + (('none', 'none', ''),)
-	for bone in bodynodes_objs_init:
+	for bone in bodynode_bones_init:
 		bones_items = bones_items + ((bone, bone, ''),)
-		
+
 	new_bone_name = bpy.props.EnumProperty(items= bones_items,
 												 name = "Bone Name")
-	
+
 	new_w_axis = bpy.props.EnumProperty(items= (('0', 'W', ''),
 												 ('1', 'X', ''),
 												 ('2', 'Y', ''),
@@ -724,12 +828,12 @@ class BodynodesChangeArmatureConfigMenu(bpy.types.Operator) :
 	def execute(self, context):
 		global bodynodes_armature_config_rec
 		global bodynodes_data
-		
+
 		bodypart_to_change = str(self.bodypart_to_change)
 		new_bone_name = str(self.new_bone_name)
 		if bodypart_to_change == "none" or new_bone_name == "none":
-			return {"FINISHED"} 
-		
+			return {"FINISHED"}
+
 		new_w_axis = int(self.new_w_axis)
 		new_x_axis = int(self.new_x_axis)
 		new_y_axis = int(self.new_y_axis)
@@ -740,13 +844,13 @@ class BodynodesChangeArmatureConfigMenu(bpy.types.Operator) :
 			new_w_axis -= 4
 		else:
 			bodynodes_armature_config_rec[bodypart_to_change]["new_w_sign"] = 1
-		
+
 		if new_x_axis > 3:
 			bodynodes_armature_config_rec[bodypart_to_change]["new_x_sign"] = -1
 			new_x_axis -= 4
 		else:
 			bodynodes_armature_config_rec[bodypart_to_change]["new_x_sign"] = 1
-		
+
 		if new_y_axis > 3:
 			bodynodes_armature_config_rec[bodypart_to_change]["new_y_sign"] = -1
 			new_y_axis -= 4
@@ -762,16 +866,16 @@ class BodynodesChangeArmatureConfigMenu(bpy.types.Operator) :
 		bodynodes_armature_config_rec[bodypart_to_change]["new_w_val"] = new_w_axis
 		bodynodes_armature_config_rec[bodypart_to_change]["new_x_val"] = new_x_axis
 		bodynodes_armature_config_rec[bodypart_to_change]["new_y_val"] = new_y_axis
-		bodynodes_armature_config_rec[bodypart_to_change]["new_z_val"] = new_z_axis		
+		bodynodes_armature_config_rec[bodypart_to_change]["new_z_val"] = new_z_axis
 		bodynodes_armature_config_rec[bodypart_to_change]["bone_name"] = new_bone_name
 
-		bodynodes_data["targetQuat"] = {}
-		bodynodes_data["offsetQuat"] = {}
-		bodynodes_data["readQuat"] = {}
-		bodynodes_data["reoriQuat"] = {}
-		bodynodes_data["initOrieZ"] = {}
-	
-		return {"FINISHED"} 
+		bodynodes_data["offsetOrientationAbs"] = {}
+		bodynodes_data["readOrientationAbs"] = {}
+
+		bodynodes_data["readGloveAngle"] = {}
+		bodynodes_data["readGloveTouch"] = {}
+
+		return {"FINISHED"}
 
 class BodynodesSaveArmatureConfigRecOperator(bpy.types.Operator, ExportHelper):
 	bl_idname = "bodynodes.save_armature_config_rec"
@@ -786,7 +890,7 @@ class BodynodesSaveArmatureConfigRecOperator(bpy.types.Operator, ExportHelper):
 		options={'HIDDEN'},
 		maxlen=255,  # Max internal buffer length, longer would be clamped.
 	)
-	
+
 	def execute(self, context):
 		save_armature_config_rec(self.filepath)
 		return {'FINISHED'}
@@ -796,7 +900,7 @@ class BodynodesLoadArmatureConfigRecOperator(bpy.types.Operator, ImportHelper):
 	bl_label = "Load Armature Configuration Operator"
 	bl_description = "Load armature configuration from a json file"
 
-	filter_glob: bpy.props.StringProperty( 
+	filter_glob: bpy.props.StringProperty(
 		default='*.json',
 		options={'HIDDEN'}
 	)
@@ -818,7 +922,7 @@ class BodynodesSaveAnimationRecOperator(bpy.types.Operator, ExportHelper):
 		options={'HIDDEN'},
 		maxlen=255,  # Max internal buffer length, longer would be clamped.
 	)
-	
+
 	def execute(self, context):
 		save_animation_rec(self.filepath)
 		return {'FINISHED'}
@@ -842,7 +946,6 @@ class InfoDialogRecOperator(bpy.types.Operator):
 		else:
 			return {'FINISHED'}
 
-		
 	def draw(self, context):
 		global info_dialog_rec_obj
 		layout = self.layout
@@ -868,12 +971,12 @@ def register_recording() :
 	bpy.utils.register_class(BodynodesSaveArmatureConfigRecOperator)
 	bpy.utils.register_class(BodynodesLoadArmatureConfigRecOperator)
 	bpy.utils.register_class(BodynodesSaveAnimationRecOperator)
-	
+
 	bpy.utils.register_class(PANEL_PT_BodynodesRecording)
 	bpy.utils.register_class(InfoDialogRecOperator)
-	
+
 	bpy.app.timers.register(main_read_orientations)
-	
+
 	load_armature_config_rec_def()
 
 
@@ -892,10 +995,10 @@ def unregister_recording() :
 	bpy.utils.unregister_class(BodynodesSaveArmatureConfigRecOperator)
 	bpy.utils.unregister_class(BodynodesLoadArmatureConfigRecOperator)
 	bpy.utils.unregister_class(BodynodesSaveAnimationRecOperator)
-	
+
 	bpy.utils.unregister_class(PANEL_PT_BodynodesRecording)
 	bpy.utils.unregister_class(InfoDialogRecOperator)
-	
+
 	bpy.app.timers.unregister(main_read_orientations)
 
 def stop_at_last_frame(scene):
@@ -905,8 +1008,3 @@ def stop_at_last_frame(scene):
 
 if __name__ == "__main__" :
 	register_recording()
-	
-
-
-
-

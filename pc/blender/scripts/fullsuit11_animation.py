@@ -1,6 +1,6 @@
 # MIT License
 # 
-# Copyright (c) 2019-2021 Manuel Bottini
+# Copyright (c) 2019-2022 Manuel Bottini
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -322,7 +322,7 @@ def load_animation(filepath):
 	start = bpy.context.scene.frame_start
 	for bodypart in animation_json.keys():
 		for keyframe_info in animation_json[bodypart]:
-			player_bodypart = get_bodynodeobj(bodypart)
+			player_bodypart = get_bodynodeobj_ori(bodypart)
 			set_bodynode_rotation_quaternion(bodypart, Quaternion((keyframe_info["rotation_quaternion"])))
 			player_bodypart.keyframe_insert(data_path='rotation_quaternion', frame=(keyframe_info["frame_current"]+start))
 			
@@ -500,11 +500,11 @@ def get_bodypart_bone(player_selected_anim, bodypart):
 
 	return bpy.data.objects[player_selected_anim].pose.bones[bone_name]
 
-def get_bodynodeobj(bodypart):
-	if bodypart not in bpy.data.objects:
-		print(bodypart+" bodynodeobj has not been found")
+def get_bodynodeobj_ori(bodypart):
+	if bodypart+"_ori" not in bpy.data.objects:
+		print(bodypart+" bodynodeobj orientation has not been found")
 		return None
-	return bpy.data.objects[bodypart]
+	return bpy.data.objects[bodypart+"_ori"]
 
 def get_bone_global_rotation_quaternion_anim(bone):
 	global player_selected_anim
