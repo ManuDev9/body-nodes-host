@@ -77,7 +77,8 @@ bodynodes_panel_connect = {
 }
 
 bodynodes_server = {
-	"host": "192.168.137.1",
+	#"host": "192.168.137.1",
+	"host": "192.168.1.227",
 	"port": 12345,
 	"buffer_size": 1024,
 	"socket": None,
@@ -119,17 +120,17 @@ class ServerDataConnection(threading.Thread):
 			message_rec = bytesAddressPair[0]
 			address = bytesAddressPair[1]
 			
-			#clientMsg = "Message from Client:{}".format(message_rec)
-			#print(clientMsg)
-			#clientIP  = "Client IP Address:{}".format(address)
-			#print(clientIP)
-			#if len(message_rec) >= 3 and message_rec[0] == 65 and message_rec[1] == 67 and message_rec[2] == 75: # ACK ascii values
-			#	print("ACK Message received ...")
-			#	print("Sending ACK to address = "+clientIP)
-			#	self.socket.sendto(str.encode("ACK"), address)
-			#else:
-			message_str = message_rec.decode("utf-8")
-			parse_message(message_str)
+			if len(message_rec) >= 4 and message_rec[0] == 65 and message_rec[1] == 67 and message_rec[2] == 75 and message_rec[3] == 78: # ACKN ascii values
+				print("ACKN Message received")
+				clientMsg = "Message from Client:{}".format(message_rec)
+				print(clientMsg)
+				clientIP  = "Client IP Address:{}".format(address)
+				print(clientIP)
+				print("Sending ACKH")
+				self.socket.sendto(b"ACKH", (address[0], bodynodes_server["port"]))
+			else:
+				message_str = message_rec.decode("utf-8")
+				parse_message(message_str)
 			
 		print("ServerDataConnection stopping")
 	def stop(self):
@@ -145,8 +146,8 @@ class ServerMulticastConnection(threading.Thread):
 		self.killed = False
 		while not self.killed:
 			#print("self.multicast_socket = "+str(self.multicast_socket))
-			#print("Sending an ACKH multicast")
-			self.multicast_socket.sendto(b"ACKH", (bodynodes_server["multicast_group"], bodynodes_server["multicast_port"]))
+			#print("Sending a BN multicast")
+			self.multicast_socket.sendto(b"BN", (bodynodes_server["multicast_group"], bodynodes_server["multicast_port"]))
 			time.sleep(5)
 			
 		print("ServerMulticastConnection stopping")
