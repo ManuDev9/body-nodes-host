@@ -30,6 +30,7 @@ import json
 import bpy
 from mathutils import *
 import struct
+import time
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -80,7 +81,12 @@ bodynodes_server = {
 	"port": 12345,
 	"buffer_size": 1024,
 	"socket": None,
-	"connection": None
+	"connection": None,
+	"multicast_group" : "239.192.1.99",
+	"multicast_port" : 12346,
+	"multicast_ttl" : 2,
+	"multicast_socket": None,
+	"multicast": None
 }
 
 def parse_message(data_str):
@@ -100,36 +106,50 @@ def parse_message(data_str):
 			else:
 				fullsuit11_recording.read_sensordata(data_json)
 
-class ServerConnection(threading.Thread):
+class ServerDataConnection(threading.Thread):
 	def __init__(self, name, socket):
 		threading.Thread.__init__(self, target=self.run, name=name, args=())
 		self.socket = socket
 
 	def run(self):
-		# print("ServerConnection ready")
+		print("ServerDataConnection starting")
 		self.killed = False
-		parsing = False
 		while not self.killed:
-
-			# If you are not receiving anything, check the port 12345
 			bytesAddressPair = self.socket.recvfrom(bodynodes_server["buffer_size"])
 			message_rec = bytesAddressPair[0]
 			address = bytesAddressPair[1]
 			
-			clientMsg = "Message from Client:{}".format(message_rec)
-			clientIP  = "Client IP Address:{}".format(address)
-			#print(message_str)
-			if len(message_rec) >= 3 and message_rec[0] == 65 and message_rec[1] == 67 and message_rec[2] == 75: # ACK ascii values
-				print("ACK Message received ...")
-				print(clientIP)
-				print("Sending ACK to address = "+clientIP)
-				self.socket.sendto(str.encode("ACK"), address)
-			else:
-				#print(clientMsg)
-				message_str = message_rec.decode("utf-8")
-				parse_message(message_str)
+			#clientMsg = "Message from Client:{}".format(message_rec)
+			#print(clientMsg)
+			#clientIP  = "Client IP Address:{}".format(address)
+			#print(clientIP)
+			#if len(message_rec) >= 3 and message_rec[0] == 65 and message_rec[1] == 67 and message_rec[2] == 75: # ACK ascii values
+			#	print("ACK Message received ...")
+			#	print("Sending ACK to address = "+clientIP)
+			#	self.socket.sendto(str.encode("ACK"), address)
+			#else:
+			message_str = message_rec.decode("utf-8")
+			parse_message(message_str)
 			
-		# print("AcceptConnection stopping")
+		print("ServerDataConnection stopping")
+	def stop(self):
+		self.killed = True
+
+class ServerMulticastConnection(threading.Thread):
+	def __init__(self, name, multicast_socket):
+		threading.Thread.__init__(self, target=self.run, name=name, args=())
+		self.multicast_socket = multicast_socket # 192.168.137.1 the local router ip address
+
+	def run(self):
+		print("ServerMulticastConnection starting")
+		self.killed = False
+		while not self.killed:
+			#print("self.multicast_socket = "+str(self.multicast_socket))
+			#print("Sending an ACKH multicast")
+			self.multicast_socket.sendto(b"ACKH", (bodynodes_server["multicast_group"], bodynodes_server["multicast_port"]))
+			time.sleep(5)
+			
+		print("ServerMulticastConnection stopping")
 	def stop(self):
 		self.killed = True
 
@@ -141,14 +161,22 @@ def start_server():
 
 	fullsuit11_recording.reinit_bn_data()
 
-	print("Creating socket ...")
+	print("Creating sockets ...")
 	bodynodes_server["socket"] = socket(AF_INET, SOCK_DGRAM)
+	bodynodes_server["multicast_socket"] = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
+	
 	print("Binding socket ...")
 
 	try:
 		print("Now running ...")
-		bodynodes_server["socket"].bind((bodynodes_server["host"], bodynodes_server["port"]))	
-		# bodynodes_server["socket"].listen(1)
+		bodynodes_server["socket"].bind((bodynodes_server["host"], bodynodes_server["port"]))
+		
+		print("Interfaces = ")
+		print(gethostbyname_ex(gethostname()))
+		group = inet_aton(bodynodes_server["multicast_group"])
+		iface = inet_aton(bodynodes_server["host"]) # Connect the multicast packets on this interface.
+		bodynodes_server["multicast_socket"].setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, bodynodes_server["multicast_ttl"])
+		bodynodes_server["multicast_socket"].setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, group+iface)
 	except:
 		bodynodes_panel_connect["server"]["status"] = "Error starting server"
 		bodynodes_server["socket"] = None
@@ -156,8 +184,10 @@ def start_server():
 		raise
 
 	print("Starting connection")
-	bodynodes_server["connection"] = ServerConnection("accepter", bodynodes_server["socket"])
+	bodynodes_server["connection"] = ServerDataConnection("accepter", bodynodes_server["socket"])
 	bodynodes_server["connection"].start()
+	bodynodes_server["multicast"] = ServerMulticastConnection("multicast", bodynodes_server["multicast_socket"])
+	bodynodes_server["multicast"].start()
 	bodynodes_panel_connect["server"]["running"] = True
 	bodynodes_panel_connect["server"]["status"] = "Running"
 
@@ -169,6 +199,13 @@ def stop_server():
 		bodynodes_server["connection"] = None
 	else:
 		print("Connection already stopped")
+
+	if bodynodes_server["multicast"]:
+		print("Stopping multicast")
+		bodynodes_server["multicast"].stop()
+		bodynodes_server["multicast"] = None
+	else:
+		print("Multicast already stopped")
 		
 	print("Closing socket")		
 	if bodynodes_server["socket"]:
@@ -176,6 +213,12 @@ def stop_server():
 		bodynodes_server["socket"] = None
 	else:
 		print("Socket already stopped")
+
+	if bodynodes_server["multicast_socket"]:
+		bodynodes_server["multicast_socket"].close()
+		bodynodes_server["multicast_socket"] = None
+	else:
+		print("Multicast_socket already stopped")
 		
 	bodynodes_panel_connect["server"]["status"] = "Server not running"
 	bodynodes_panel_connect["server"]["running"] = False
