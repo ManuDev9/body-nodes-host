@@ -49,4 +49,3 @@
 #define ACTION_ENABLESENSOR_ENABLE_TAG      "enable"
 #define ACTION_SETWIFI_SSID_TAG             "ssid"
 #define ACTION_SETWIFI_PASSWORD_TAG         "password"
-#define ACTION_SETWIFI_SERVERIP_TAG         "server_ip"

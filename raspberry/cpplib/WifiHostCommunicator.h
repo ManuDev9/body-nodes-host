@@ -2,7 +2,7 @@
 /**
  * MIT License
  *
- * Copyright (c) 2021 Manuel Bottini
+ * Copyright (c) 2021-2022 Manuel Bottini
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,8 @@ public:
   void addAction(nlohmann::json &action);
   void sendAllActions();
   bool checkAllOk();
-  void run_background();
+  void run_connection_background();
+  void run_multicast_background();
   bool addListener(BodynodeListener *listener);
   void removeListener(BodynodeListener *listener);
   void removeAllListeners();
@@ -51,17 +52,20 @@ public:
 private:
 
   void receiveBytes();
-  void sendACK(IPConnectionData &connectionData);
-  bool checkForACK(IPConnectionData &connectionData);
+  void sendACKH(IPConnectionData &connectionData);
+  void sendMulticastBN();
+  bool checkForACKN(IPConnectionData &connectionData);
   void checkForMessages(IPConnectionData &connectionData);
-  void parseJSON(sockaddr_in &connection, nlohmann::json &jsonMessages);
+  void parseMessage(sockaddr_in &connection, nlohmann::json &jsonMessages);
   
-  std::thread                             whc_messagesListenerThread;
+  std::thread                             whc_dataConnectionThread;
+  std::thread                             whc_multicastConnectionThread;
   bool                                    whc_toStop;
   nlohmann::json                          whc_messagesMap;
   std::map<std::string, sockaddr_in>      whc_connectionsMap;
   std::map<std::string, IPConnectionData> whc_tempConnectionsDataMap;
   UDPConnector                            whc_connector;
+  UDPConnector                            whc_multicast_connector;
   std::list<nlohmann::json>               whc_actionsToSend;
   std::list<BodynodeListener*>            whc_bodynodesListeners;
 };

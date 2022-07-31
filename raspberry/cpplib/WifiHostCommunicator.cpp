@@ -2,7 +2,7 @@
 /**
  * MIT License
  *
- * Copyright (c) 2021 Manuel Bottini
+ * Copyright (c) 2021-2022 Manuel Bottini
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,17 +30,24 @@
 #include <iostream>
 #include <unistd.h>
 #include <sys/types.h> 
+#include <chrono>
 
-void startFun(WifiHostCommunicator *comm) {
-  comm->run_background();
+
+void startFunData(WifiHostCommunicator *comm) {
+  comm->run_connection_background();
+}
+
+void startFunMulticast(WifiHostCommunicator *comm) {
+  comm->run_multicast_background();
 }
 
 void WifiHostCommunicator::start() {
   whc_toStop = false;
-  // create a UDP socket
+  // create a UDP socket for data
   if ((whc_connector.socket_id =socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-    printf("Couldn't start socket\n");
-	whc_toStop = true;
+    printf("Couldn't data start socket\n");
+    whc_toStop = true;
+    return;
   }
   
   // zero out the structure
@@ -54,22 +61,67 @@ void WifiHostCommunicator::start() {
   struct timeval read_timeout;
   read_timeout.tv_sec = 0;
   read_timeout.tv_usec = 10000;
-  setsockopt(whc_connector.socket_id, SOL_SOCKET, SO_RCVTIMEO, &read_timeout, sizeof read_timeout);
-  
-  // bind socket to port
-  if( bind(whc_connector.socket_id , (sockaddr*)&whc_connector.ip_address, sizeof(whc_connector.ip_address) ) == -1) {
-    printf("Couldn't bind socket to port\n");
-	whc_toStop = true;
+  if( setsockopt(whc_connector.socket_id, SOL_SOCKET, SO_RCVTIMEO, &read_timeout, sizeof read_timeout) == -1 ) {
+    printf("Couldn't set option to data socket\n");
+    whc_toStop = true;
+    return;
   }
+  
+  // bind data socket to port
+  if( bind(whc_connector.socket_id , (sockaddr*)&whc_connector.ip_address, sizeof(whc_connector.ip_address) ) == -1) {
+    printf("Couldn't bind data socket to port\n");
+    whc_toStop = true;
+    return;
+  }
+
+  // create a UDP socket for multicast
+  if ((whc_multicast_connector.socket_id = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+    printf("Couldn't start multicast socket\n");
+    whc_toStop = true;
+    return;
+  }
+  
+  // zero out the structure
+  memset((char *) &whc_multicast_connector.ip_address, 0, sizeof(whc_multicast_connector.ip_address));
+  
+  whc_multicast_connector.ip_address.sin_family = AF_INET;
+  whc_multicast_connector.ip_address.sin_port = htons(BODYNODES_MULTICAST_PORT);
+  whc_multicast_connector.ip_address.sin_addr.s_addr = htonl(INADDR_ANY);
+
+  whc_multicast_connector.multicast_ip_address.sin_family = AF_INET;
+  whc_multicast_connector.multicast_ip_address.sin_port = htons(BODYNODES_MULTICAST_PORT);
+  whc_multicast_connector.multicast_ip_address.sin_addr.s_addr = inet_addr(BODYNODES_MULTICAST_ADDRESS);
+
+  struct ip_mreq mc_req;
+  mc_req.imr_multiaddr.s_addr = whc_multicast_connector.multicast_ip_address.sin_addr.s_addr;
+  mc_req.imr_interface.s_addr = htonl(INADDR_ANY);
+
+  // set multicast option to socket
+  if( setsockopt(whc_multicast_connector.socket_id, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*)&mc_req, sizeof(mc_req)) == -1 ) {
+    printf("Couldn't set option to multicast socket\n");
+    whc_toStop = true;
+    return;
+  }
+  
+  // bind multicast socket to port
+  if( bind(whc_multicast_connector.socket_id , (sockaddr*)&whc_multicast_connector.ip_address, sizeof(whc_multicast_connector.ip_address) ) == -1) {
+    printf("Couldn't bind multicast socket to port\n");
+    whc_toStop = true;
+    return;
+  }
+
   if(!whc_toStop) {
-    whc_messagesListenerThread = std::thread(&startFun, this);
+    whc_dataConnectionThread = std::thread(&startFunData, this);
+    whc_multicastConnectionThread = std::thread(&startFunMulticast, this);
   }
 }
 
 void WifiHostCommunicator::stop() {
   whc_toStop = true;
   close(whc_connector.socket_id);
-  whc_messagesListenerThread.join();
+  close(whc_multicast_connector.socket_id);
+  whc_dataConnectionThread.join();
+  whc_multicastConnectionThread.join();
   removeAllListeners();
 }
 
@@ -133,20 +185,20 @@ bool WifiHostCommunicator::checkAllOk() {
     //printf("Data in the received bytes %s\n", connectionData->received_bytes );
     
     if(connectionData->isWaitingACK()) {
-	  //printf("connectionData->isWaitingACK()\n");
-      if(checkForACK(*connectionData)) {
-	    sendACK(*connectionData);
+      //printf("connectionData->isWaitingACK()\n");
+      if(checkForACKN(*connectionData)) {
+        sendACKH(*connectionData);
         connectionData->setConnected();
       }
     } else {
       if( time(0) - connectionData->last_rec_time > CONNECTION_KEEP_ALIVE_REC_INTERVAL_MS ) {
         connectionData->setDisconnected();
       }
-      if(checkForACK(*connectionData)) {
-	    sendACK(*connectionData);
+      if(checkForACKN(*connectionData)) {
+        sendACKH(*connectionData);
       } else {
         checkForMessages(*connectionData);
-	  }
+      }
     }
     connectionData->cleanBytes();
     // Increment the Iterator to point to next entry
@@ -155,8 +207,18 @@ bool WifiHostCommunicator::checkAllOk() {
   return !whc_toStop;
 }
 
-void WifiHostCommunicator::run_background() {
-  while(checkAllOk());
+void WifiHostCommunicator::run_connection_background() {
+  while(checkAllOk()) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+}
+
+void WifiHostCommunicator::run_multicast_background() {
+  while(!whc_toStop) {
+    //printf("Sending a multicast BN\n");
+    sendMulticastBN();
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  }
 }
 
 bool WifiHostCommunicator::addListener(BodynodeListener *listener) {
@@ -204,17 +266,26 @@ void WifiHostCommunicator::receiveBytes() {
   }
 }
 
-void WifiHostCommunicator::sendACK(IPConnectionData &connectionData) {
-  char tmp_buf[4] = {'A', 'C', 'K', '\0'};
+void WifiHostCommunicator::sendACKH(IPConnectionData &connectionData) {
+  char tmp_buf[5] = {'A', 'C', 'K', 'H', '\0'};
   int slen = sizeof(connectionData.ip_address);
-  if (sendto(whc_connector.socket_id, tmp_buf, 4, 0, (struct sockaddr*) &connectionData.ip_address, slen) == -1) {
-    printf("Couldn't send ACK\n");
+  if (sendto(whc_connector.socket_id, tmp_buf, 5, 0, (struct sockaddr*) &connectionData.ip_address, slen) == -1) {
+    printf("Couldn't send ACKH\n");
   }
 }
 
-bool WifiHostCommunicator::checkForACK(IPConnectionData &connectionData) {
-  for(uint16_t index = 0; index< connectionData.num_received_bytes-2;++index){
-    if(connectionData.received_bytes[index] == 'A' && connectionData.received_bytes[index+1] == 'C' && connectionData.received_bytes[index+2] == 'K') {
+void WifiHostCommunicator::sendMulticastBN() {
+  char tmp_buf[3] = {'B', 'N', '\0'};
+  //printf("Sending BN Multicast\n");
+  int slen = sizeof(whc_multicast_connector.multicast_ip_address);
+  if (sendto(whc_connector.socket_id, tmp_buf, 3, 0, (struct sockaddr*) &whc_multicast_connector.multicast_ip_address, slen) == -1) {
+    printf("Couldn't send BN Multicast\n");
+  }
+}
+
+bool WifiHostCommunicator::checkForACKN(IPConnectionData &connectionData) {
+  for(uint16_t index = 0; index< connectionData.num_received_bytes-3;++index){
+    if(connectionData.received_bytes[index] == 'A' && connectionData.received_bytes[index+1] == 'C' && connectionData.received_bytes[index+2] == 'K' && connectionData.received_bytes[index+3] == 'N') {
       connectionData.last_rec_time = time(0);
       return true;
     }
@@ -226,13 +297,13 @@ void WifiHostCommunicator::checkForMessages(IPConnectionData &connectionData) {
   if(connectionData.num_received_bytes > 0 ) {
     //std::cout << "checkForMessages - connetionData.received_bytes =" << connectionData.received_bytes << '\n';
     nlohmann::json jsonMessages = nlohmann::json::parse(connectionData.received_bytes);
-    parseJSON(connectionData.ip_address, jsonMessages);
+    parseMessage(connectionData.ip_address, jsonMessages);
     connectionData.last_rec_time = time(0);
   }
 }
 
-void WifiHostCommunicator::parseJSON(sockaddr_in &connection, nlohmann::json &jsonMessages) {
-  //printf("WifiHostCommunicator::parseJSON\n");
+void WifiHostCommunicator::parseMessage(sockaddr_in &connection, nlohmann::json &jsonMessages) {
+  //printf("WifiHostCommunicator::parseMessage\n");
   for (auto& elem : jsonMessages.items()) {
     //std::cout << "key: " << message.key() << ", value:" << message.value() << '\n';
     nlohmann::json message = elem.value();

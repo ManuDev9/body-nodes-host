@@ -102,7 +102,6 @@ int main(){
       
       action[ACTION_SETWIFI_SSID_TAG] = "upperbody";
       action[ACTION_SETWIFI_PASSWORD_TAG] = "bodynodes1";
-      action[ACTION_SETWIFI_SERVERIP_TAG] = "192.168.137.1";
       
       communicator.addAction(action);
     }

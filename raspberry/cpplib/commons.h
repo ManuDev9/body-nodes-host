@@ -34,8 +34,10 @@
 #define CONNECTION_STATUS_WAITING_ACK    2
 #define CONNECTION_STATUS_CONNECTED      3
 
-#define MAX_BUFFER_LENGTH   512	//Max length of buffer
-#define BODYNODES_PORT      12345
+#define MAX_BUFFER_LENGTH             512	//Max length of buffer
+#define BODYNODES_PORT                12345
+#define BODYNODES_MULTICAST_PORT      12346
+#define BODYNODES_MULTICAST_ADDRESS   "239.192.1.99"
 
 #define CONNECTION_ACK_INTERVAL_MS 1000
 #define CONNECTION_KEEP_ALIVE_SEND_INTERVAL_MS 30000
@@ -44,6 +46,7 @@
 
 struct UDPConnector {
   sockaddr_in ip_address;
+  sockaddr_in multicast_ip_address;
   int socket_id;
 };
 

@@ -1,6 +1,6 @@
 # MIT License
 # 
-# Copyright (c) 2019-2021 Manuel Bottini
+# Copyright (c) 2019-2022 Manuel Bottini
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,11 +28,14 @@ import json
 import time
 
 bodynodes_server = {
-  "host" : "192.168.0.167", # Raspberry PI local address, check it with "ifconfig" and change it
+  "host" : "192.168.1.247", # Raspberry PI local address, check it with "ifconfig" and change it
   "port" : 12345,
   "buffer_size" : 1024,
   "connection_keep_alive_rec_interval_ms" : 60000,
-  "connection_ack_interval_ms" : 1000
+  "connection_ack_interval_ms" : 1000,
+  "multicast_group" : "239.192.1.99",
+  "multicast_port" : 12346,
+  "multicast_ttl" : 2,
 }
 
 def current_milli_time():
@@ -53,8 +56,10 @@ class WifiHostCommunicator:
 	
   # Initializes the object, no input parameters are required
   def __init__(self):
-    # Thread to listen for messages
-    self.whc_messagesListenerThread = threading.Thread(target=self.run_background)
+    # Thread for data connection
+    self.whc_dataConnectionThread = threading.Thread(target=self.run_data_connection_background)
+    # Thread to multicast ACKH
+    self.whc_multicastConnectionThread = threading.Thread(target=self.run_multicast_connection_background)
     # Boolean to stop the thread
     self.whc_toStop = True;
     # Json object containing the messages for each player+bodypart+sensortype combination (key)
@@ -65,6 +70,7 @@ class WifiHostCommunicator:
     self.whc_tempConnectionsDataMap = {}
     # Connector object that can receive and send data
     self.whc_connector = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK)
+    self.whc_multicast_connector = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP)
     # List of actions to send
     self.whc_actionsToSend = []
     self.whc_bodynodesListeners = []
@@ -78,7 +84,21 @@ class WifiHostCommunicator:
       self.whc_connector.bind((bodynodes_server["host"], bodynodes_server["port"]))
     except:
       print("Cannot start socket. Is the IP address correct? Or is there any ip connection?")
-    self.whc_messagesListenerThread.start()
+
+    try:
+      print("Interfaces = ")
+      print(gethostbyname_ex(gethostname()))
+      group = inet_aton(bodynodes_server["multicast_group"])
+      iface = inet_aton(bodynodes_server["host"]) # Connect the multicast packets on this interface.
+      self.whc_multicast_connector.setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, bodynodes_server["multicast_ttl"])
+      self.whc_multicast_connector.setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, group+iface)
+    except Exception as er:
+      print("Cannot start multicast socket. No network connections available?")
+      print(er)
+    
+    self.whc_toStop = False
+    self.whc_dataConnectionThread.start()
+    self.whc_multicastConnectionThread.start()
     
   # Stops the communicator
   def stop(self):
@@ -90,11 +110,17 @@ class WifiHostCommunicator:
   # Update function, not in use
   def update(self):
     print("Update function called [NOT IN USE]")
-  
-  def run_background(self):
-    self.whc_toStop = False
+
+  def run_data_connection_background(self):
     while not self.whc_toStop:
       self.checkAllOk()
+      time.sleep(0.01)
+
+  def run_multicast_connection_background(self):
+    while not self.whc_toStop:
+      self.__sendMulticastBN()
+      time.sleep(5)
+    
 
   # Returns the message associated to the requested player+bodypart+sensortype combination
   def getMessageValue(self, player, bodypart, sensortype):
@@ -125,19 +151,19 @@ class WifiHostCommunicator:
       if self.whc_tempConnectionsDataMap[tmp_connection_str]["received_bytes"] != None:
         #print("Connection to check "+tmp_connection_str+"\n", )
         received_bytes_str = self.whc_tempConnectionsDataMap[tmp_connection_str]["received_bytes"].decode("utf-8")
-        #print("Data in the received bytes "+received_bytes_str+"\n" )
-        #print("Status connection "+self.whc_tempConnectionsDataMap[tmp_connection_str]["STATUS"] )
-        
+        # print("Data in the received bytes "+received_bytes_str+"\n" )
+        # print("Status connection "+self.whc_tempConnectionsDataMap[tmp_connection_str]["STATUS"] )
+
       if self.whc_tempConnectionsDataMap[tmp_connection_str]["STATUS"] == "IS_WAITING_ACK":
-        #print("Connetion is waiting ACK")
-        if self.__checkForACK(self.whc_tempConnectionsDataMap[tmp_connection_str]):
-          self.__sendACK(self.whc_tempConnectionsDataMap[tmp_connection_str])
+        #print("Connetion is waiting ACKN")
+        if self.__checkForACKN(self.whc_tempConnectionsDataMap[tmp_connection_str]):
+          self.__sendACKH(self.whc_tempConnectionsDataMap[tmp_connection_str])
           self.whc_tempConnectionsDataMap[tmp_connection_str]["STATUS"]  = "CONNECTED"
       else:
         if current_milli_time() - self.whc_tempConnectionsDataMap[tmp_connection_str]["last_rec_time"] > bodynodes_server["connection_keep_alive_rec_interval_ms"]:
           self.whc_tempConnectionsDataMap[tmp_connection_str]["STATUS"]  = "DISCONNECTED"
-        if self.__checkForACK(self.whc_tempConnectionsDataMap[tmp_connection_str]):
-          self.__sendACK(self.whc_tempConnectionsDataMap[tmp_connection_str])
+        if self.__checkForACKN(self.whc_tempConnectionsDataMap[tmp_connection_str]):
+          print("Received ACKN")
         else:
           self.__checkForMessages(self.whc_tempConnectionsDataMap[tmp_connection_str])
       self.whc_tempConnectionsDataMap[tmp_connection_str]["received_bytes"] = None
@@ -176,7 +202,8 @@ class WifiHostCommunicator:
 
     message_bytes = bytesAddressPair[0]
     ip_address = bytesAddressPair[1][0]
-    #print(ip_address)
+    # print(ip_address)
+    # print(message_bytes)
     connection_str = ip_address+""
     if connection_str not in self.whc_tempConnectionsDataMap:
       new_connectionData = {}
@@ -188,19 +215,26 @@ class WifiHostCommunicator:
     connectionData["num_received_bytes"] = len(message_bytes)
     connectionData["received_bytes"] = message_bytes
 
-  # Sends ACK to a connection
-  def __sendACK(self, connectionData):
-    #print( "Sending ACK to = " +connectionData["ip_address"] )
-    self.whc_connector.sendto(str.encode("ACK"), ( connectionData["ip_address"], bodynodes_server["port"] ))
+  # Sends ACKH to a connection
+  def __sendACKH(self, connectionData):
+    print( "Sending ACK to = " +connectionData["ip_address"] )
+    self.whc_connector.sendto(str.encode("ACKH"), (connectionData["ip_address"], 12345))
+
+  # Sends ACKH to a connection
+  def __sendMulticastBN(self):
+    #print("self.multicast_socket = "+str(self.multicast_socket))
+    #print("Sending a BN multicast")
+    self.whc_multicast_connector.sendto(b"BN", (bodynodes_server["multicast_group"], bodynodes_server["multicast_port"]))
 
   # Checks if there is an ACK in the connection data. Returns true if there is, false otherwise
-  def __checkForACK(self, connectionData):
-    if connectionData["num_received_bytes"] < 3:
+  def __checkForACKN(self, connectionData):
+    if connectionData["num_received_bytes"] < 4:
+      #print( "Check for ACKN - not enough bytes = " +str(connectionData["num_received_bytes"]) )
       return False
 
     for index in range(0, connectionData["num_received_bytes"] - 2 ):
-      # ACK
-      if connectionData["received_bytes"][index] == 65 and connectionData["received_bytes"][index+1] == 67 and connectionData["received_bytes"][index+2] == 75 :
+      # ACKN
+      if connectionData["received_bytes"][index] == 65 and connectionData["received_bytes"][index+1] == 67 and connectionData["received_bytes"][index+2] == 75 and connectionData["received_bytes"][index+3] == 78:
         connectionData["last_rec_time"] = current_milli_time()        
         return True
     return False
@@ -225,10 +259,10 @@ class WifiHostCommunicator:
     if not isinstance(jsonMessages, list):
       jsonMessages = [jsonMessages]
 
-    self.__parseJSON(connectionData["ip_address"], jsonMessages)
+    self.__parseMessage(connectionData["ip_address"], jsonMessages)
     
   # Puts the json messages in the messages map and associated them with the connection
-  def __parseJSON(self, ip_address, jsonMessages):
+  def __parseMessage(self, ip_address, jsonMessages):
     for message in jsonMessages:	
       if ("player" not in message) or ("bodypart" not in message) or ("sensortype" not in message) or ("value" not in message):
         printf("Json message received is incomplete\n");
@@ -250,7 +284,7 @@ if __name__=="__main__":
   listener = BodynodeListenerTest()
   command = "n"
   while command != "e":
-    command = input("Type a command [r/l/u ro read message, h/p/b/s/w to send action, e to exit]: ")
+    command = input("Type a command [r/l/u to read message, h/p/b/s/w to send action, e to exit]: ")
     if command == "r":
       outvalue = communicator.getMessageValue("mario", "katana", "orientation_abs")
       print(outvalue)
@@ -305,8 +339,7 @@ if __name__=="__main__":
         "player" : "mario",
         "bodypart" : "katana",
         "ssid" : "upperbody",
-        "password" : "bodynodes1",
-        "server_ip" : "192.168.137.1"
+        "password" : "bodynodes1"
       }
       
       communicator.addAction(action)
