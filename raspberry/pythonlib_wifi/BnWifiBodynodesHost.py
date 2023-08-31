@@ -52,7 +52,7 @@ class BodynodeListenerTest(BodynodeListener):
   def __init__(self):
     print("This is a test class")
 
-class WifiHostCommunicator:
+class BnWifiHostCommunicator:
 	
   # Initializes the object, no input parameters are required
   def __init__(self):
@@ -79,7 +79,7 @@ class WifiHostCommunicator:
 
   # Starts the communicator
   def start(self):
-    print("WifiHostCommunicator - Starting")
+    print("BnWifiHostCommunicator - Starting")
     try:
       self.whc_connector.bind((bodynodes_server["host"], bodynodes_server["port"]))
     except:
@@ -102,7 +102,7 @@ class WifiHostCommunicator:
     
   # Stops the communicator
   def stop(self):
-    print("WifiHostCommunicator - Stopping")
+    print("BnWifiHostCommunicator - Stopping")
     self.whc_toStop = True
     self.whc_connector.close()
     self.whc_bodynodesListeners = []
@@ -279,7 +279,7 @@ class WifiHostCommunicator:
 
 
 if __name__=="__main__":
-  communicator = WifiHostCommunicator()
+  communicator = BnWifiHostCommunicator()
   communicator.start()
   listener = BodynodeListenerTest()
   command = "n"

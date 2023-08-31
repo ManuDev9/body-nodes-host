@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-#include "constants.h"
+#include "BnConstants.h"
 
 #include <sys/socket.h>
 #include <arpa/inet.h>	//inet_addr

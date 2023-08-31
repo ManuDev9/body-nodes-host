@@ -23,7 +23,7 @@
  * SOFTWARE.
  */
 
-#include "WifiHostCommunicator.h"
+#include "BnWifiHostCommunicator.h"
 
 #include <stdio.h>
 #include <sys/time.h>
@@ -33,15 +33,15 @@
 #include <chrono>
 
 
-void startFunData(WifiHostCommunicator *comm) {
+void startFunData(BnWifiHostCommunicator *comm) {
   comm->run_connection_background();
 }
 
-void startFunMulticast(WifiHostCommunicator *comm) {
+void startFunMulticast(BnWifiHostCommunicator *comm) {
   comm->run_multicast_background();
 }
 
-void WifiHostCommunicator::start() {
+void BnWifiHostCommunicator::start() {
   whc_toStop = false;
   // create a UDP socket for data
   if ((whc_connector.socket_id =socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
@@ -116,7 +116,7 @@ void WifiHostCommunicator::start() {
   }
 }
 
-void WifiHostCommunicator::stop() {
+void BnWifiHostCommunicator::stop() {
   whc_toStop = true;
   close(whc_connector.socket_id);
   close(whc_multicast_connector.socket_id);
@@ -125,11 +125,11 @@ void WifiHostCommunicator::stop() {
   removeAllListeners();
 }
 
-void WifiHostCommunicator::update() {
-  printf("WifiHostCommunicator::update()\n");
+void BnWifiHostCommunicator::update() {
+  printf("BnWifiHostCommunicator::update()\n");
 }
 
-bool WifiHostCommunicator::getMessageValue(
+bool BnWifiHostCommunicator::getMessageValue(
   std::string player,
   std::string bodypart,
   std::string sensortype,
@@ -148,11 +148,11 @@ bool WifiHostCommunicator::getMessageValue(
   return true;  
 }
 
-void WifiHostCommunicator::addAction(nlohmann::json &action) {
+void BnWifiHostCommunicator::addAction(nlohmann::json &action) {
   whc_actionsToSend.push_back(action);
 }
 
-void WifiHostCommunicator::sendAllActions() {
+void BnWifiHostCommunicator::sendAllActions() {
   for (auto const& action : whc_actionsToSend) {
     std::cout << "action: " << action << '\n';
     std::string player_bodypart = action[ACTION_PLAYER_TAG];
@@ -173,7 +173,7 @@ void WifiHostCommunicator::sendAllActions() {
   whc_actionsToSend.clear();
 }
 
-bool WifiHostCommunicator::checkAllOk() {
+bool BnWifiHostCommunicator::checkAllOk() {
   receiveBytes();
   
   std::map<std::string, IPConnectionData>::iterator iter = whc_tempConnectionsDataMap.begin();
@@ -207,13 +207,13 @@ bool WifiHostCommunicator::checkAllOk() {
   return !whc_toStop;
 }
 
-void WifiHostCommunicator::run_connection_background() {
+void BnWifiHostCommunicator::run_connection_background() {
   while(checkAllOk()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 }
 
-void WifiHostCommunicator::run_multicast_background() {
+void BnWifiHostCommunicator::run_multicast_background() {
   while(!whc_toStop) {
     //printf("Sending a multicast BN\n");
     sendMulticastBN();
@@ -221,7 +221,7 @@ void WifiHostCommunicator::run_multicast_background() {
   }
 }
 
-bool WifiHostCommunicator::addListener(BodynodeListener *listener) {
+bool BnWifiHostCommunicator::addListener(BodynodeListener *listener) {
   if(listener!=nullptr) {
     whc_bodynodesListeners.push_back(listener);
     return true;
@@ -229,17 +229,17 @@ bool WifiHostCommunicator::addListener(BodynodeListener *listener) {
   return false;
 }
 
-void WifiHostCommunicator::removeListener(BodynodeListener *listener) {
+void BnWifiHostCommunicator::removeListener(BodynodeListener *listener) {
   if(listener!=nullptr) {
     whc_bodynodesListeners.remove(listener);
   }
 }
 
-void WifiHostCommunicator::removeAllListeners() {
+void BnWifiHostCommunicator::removeAllListeners() {
   whc_bodynodesListeners.clear();
 }
 
-void WifiHostCommunicator::receiveBytes() {
+void BnWifiHostCommunicator::receiveBytes() {
   sockaddr_in remote_socket;
   unsigned int socket_len = sizeof(remote_socket);
   int num_bytes = 0;
@@ -266,7 +266,7 @@ void WifiHostCommunicator::receiveBytes() {
   }
 }
 
-void WifiHostCommunicator::sendACKH(IPConnectionData &connectionData) {
+void BnWifiHostCommunicator::sendACKH(IPConnectionData &connectionData) {
   char tmp_buf[5] = {'A', 'C', 'K', 'H', '\0'};
   int slen = sizeof(connectionData.ip_address);
   if (sendto(whc_connector.socket_id, tmp_buf, 5, 0, (struct sockaddr*) &connectionData.ip_address, slen) == -1) {
@@ -274,7 +274,7 @@ void WifiHostCommunicator::sendACKH(IPConnectionData &connectionData) {
   }
 }
 
-void WifiHostCommunicator::sendMulticastBN() {
+void BnWifiHostCommunicator::sendMulticastBN() {
   char tmp_buf[3] = {'B', 'N', '\0'};
   //printf("Sending BN Multicast\n");
   int slen = sizeof(whc_multicast_connector.multicast_ip_address);
@@ -283,7 +283,7 @@ void WifiHostCommunicator::sendMulticastBN() {
   }
 }
 
-bool WifiHostCommunicator::checkForACKN(IPConnectionData &connectionData) {
+bool BnWifiHostCommunicator::checkForACKN(IPConnectionData &connectionData) {
   for(uint16_t index = 0; index< connectionData.num_received_bytes-3;++index){
     if(connectionData.received_bytes[index] == 'A' && connectionData.received_bytes[index+1] == 'C' && connectionData.received_bytes[index+2] == 'K' && connectionData.received_bytes[index+3] == 'N') {
       connectionData.last_rec_time = time(0);
@@ -293,7 +293,7 @@ bool WifiHostCommunicator::checkForACKN(IPConnectionData &connectionData) {
   return false;
 }
 
-void WifiHostCommunicator::checkForMessages(IPConnectionData &connectionData) {
+void BnWifiHostCommunicator::checkForMessages(IPConnectionData &connectionData) {
   if(connectionData.num_received_bytes > 0 ) {
     //std::cout << "checkForMessages - connetionData.received_bytes =" << connectionData.received_bytes << '\n';
     nlohmann::json jsonMessages = nlohmann::json::parse(connectionData.received_bytes);
@@ -302,8 +302,8 @@ void WifiHostCommunicator::checkForMessages(IPConnectionData &connectionData) {
   }
 }
 
-void WifiHostCommunicator::parseMessage(sockaddr_in &connection, nlohmann::json &jsonMessages) {
-  //printf("WifiHostCommunicator::parseMessage\n");
+void BnWifiHostCommunicator::parseMessage(sockaddr_in &connection, nlohmann::json &jsonMessages) {
+  //printf("BnWifiHostCommunicator::parseMessage\n");
   for (auto& elem : jsonMessages.items()) {
     //std::cout << "key: " << message.key() << ", value:" << message.value() << '\n';
     nlohmann::json message = elem.value();

@@ -1,8 +1,7 @@
-
 /**
  * MIT License
  *
- * Copyright (c) 2021-2022 Manuel Bottini
+ * Copyright (c) 2021-2023 Manuel Bottini
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,16 +23,13 @@
  */
 
 #include "BodynodesHostInterface.h"
-#include "commons.h"
+#include "BnUtils.h"
+#include "BnDataTypes.h"
 
-#include <thread>
-#include <map>
-#include <list>
+#ifndef __BN_WIFI_HOST_COMMUNICATOR
+#define __BN_WIFI_HOST_COMMUNICATOR
 
-#ifndef __WIFI_HOST_COMMUNICATOR
-#define __WIFI_HOST_COMMUNICATOR
-
-class WifiHostCommunicator : public BodynodesHostInterface {
+class BnWifiHostCommunicator : public BodynodesHostInterface {
 
 public:
   void start();
@@ -70,4 +66,4 @@ private:
   std::list<BodynodeListener*>            whc_bodynodesListeners;
 };
 
-#endif // __WIFI_HOST_COMMUNICATOR
+#endif // __BN_WIFI_HOST_COMMUNICATOR

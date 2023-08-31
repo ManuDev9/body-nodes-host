@@ -1,6 +1,6 @@
 # MIT License
 # 
-# Copyright (c) 2019-2022 Manuel Bottini
+# Copyright (c) 2019-2023 Manuel Bottini
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -77,8 +77,8 @@ bodynodes_panel_connect = {
 }
 
 bodynodes_server = {
-	#"host": "192.168.137.1",
-	"host": "192.168.1.227",
+	"host": "192.168.199.93",  # Hostpot server
+	#"host": "192.168.1.227", # Wifi server
 	"port": 12345,
 	"buffer_size": 1024,
 	"socket": None,
@@ -91,7 +91,7 @@ bodynodes_server = {
 }
 
 def parse_message(data_str):
-	#print("data_str = " +data_str)
+	print("data_str = " +data_str)
 	data_str_a = data_str.split("\n")
 	for index in range(0, len(data_str_a)):
 		data_json = None
@@ -107,13 +107,13 @@ def parse_message(data_str):
 			else:
 				fullsuit11_recording.read_sensordata(data_json)
 
-class ServerDataConnection(threading.Thread):
+class BnServerDataConnection(threading.Thread):
 	def __init__(self, name, socket):
 		threading.Thread.__init__(self, target=self.run, name=name, args=())
 		self.socket = socket
 
 	def run(self):
-		print("ServerDataConnection starting")
+		print("BnServerDataConnection starting")
 		self.killed = False
 		while not self.killed:
 			bytesAddressPair = self.socket.recvfrom(bodynodes_server["buffer_size"])
@@ -132,17 +132,17 @@ class ServerDataConnection(threading.Thread):
 				message_str = message_rec.decode("utf-8")
 				parse_message(message_str)
 			
-		print("ServerDataConnection stopping")
+		print("BnServerDataConnection stopping")
 	def stop(self):
 		self.killed = True
 
-class ServerMulticastConnection(threading.Thread):
+class BnServerMulticastConnection(threading.Thread):
 	def __init__(self, name, multicast_socket):
 		threading.Thread.__init__(self, target=self.run, name=name, args=())
 		self.multicast_socket = multicast_socket # 192.168.137.1 the local router ip address
 
 	def run(self):
-		print("ServerMulticastConnection starting")
+		print("BnServerMulticastConnection starting")
 		self.killed = False
 		while not self.killed:
 			#print("self.multicast_socket = "+str(self.multicast_socket))
@@ -150,7 +150,7 @@ class ServerMulticastConnection(threading.Thread):
 			self.multicast_socket.sendto(b"BN", (bodynodes_server["multicast_group"], bodynodes_server["multicast_port"]))
 			time.sleep(5)
 			
-		print("ServerMulticastConnection stopping")
+		print("BnServerMulticastConnection stopping")
 	def stop(self):
 		self.killed = True
 
@@ -172,12 +172,17 @@ def start_server():
 		print("Now running ...")
 		bodynodes_server["socket"].bind((bodynodes_server["host"], bodynodes_server["port"]))
 		
+		all_ifaces = gethostbyname_ex(gethostname())[2]
 		print("Interfaces = ")
-		print(gethostbyname_ex(gethostname()))
+		print(all_ifaces)
 		group = inet_aton(bodynodes_server["multicast_group"])
-		iface = inet_aton(bodynodes_server["host"]) # Connect the multicast packets on this interface.
+		
 		bodynodes_server["multicast_socket"].setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, bodynodes_server["multicast_ttl"])
-		bodynodes_server["multicast_socket"].setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, group+iface)
+		for iface in all_ifaces:
+			# Connect the multicast packets on this interface.
+			print("Using interface = " + str(iface))
+			bodynodes_server["multicast_socket"].setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, group+inet_aton(iface))
+
 	except:
 		bodynodes_panel_connect["server"]["status"] = "Error starting server"
 		bodynodes_server["socket"] = None
@@ -185,9 +190,9 @@ def start_server():
 		raise
 
 	print("Starting connection")
-	bodynodes_server["connection"] = ServerDataConnection("accepter", bodynodes_server["socket"])
+	bodynodes_server["connection"] = BnServerDataConnection("accepter", bodynodes_server["socket"])
 	bodynodes_server["connection"].start()
-	bodynodes_server["multicast"] = ServerMulticastConnection("multicast", bodynodes_server["multicast_socket"])
+	bodynodes_server["multicast"] = BnServerMulticastConnection("multicast", bodynodes_server["multicast_socket"])
 	bodynodes_server["multicast"].start()
 	bodynodes_panel_connect["server"]["running"] = True
 	bodynodes_panel_connect["server"]["status"] = "Running"

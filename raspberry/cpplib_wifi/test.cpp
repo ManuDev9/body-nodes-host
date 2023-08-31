@@ -23,7 +23,7 @@
  * SOFTWARE.
  */
 
-#include "WifiHostCommunicator.h"
+#include "BnWifiHostCommunicator.h"
 #include <iostream>
 #include <unistd.h>
 
@@ -39,7 +39,7 @@ class BodynodeListenerTest : public BodynodeListener {
 
 
 int main(){
-  WifiHostCommunicator communicator;
+  BnWifiHostCommunicator communicator;
   communicator.start();
   BodynodeListenerTest listener;
   

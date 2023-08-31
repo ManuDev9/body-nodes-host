@@ -1,8 +1,7 @@
-
 /**
  * MIT License
  *
- * Copyright (c) 2021 Manuel Bottini
+ * Copyright (c) 2021-2023 Manuel Bottini
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,26 +22,14 @@
  * SOFTWARE.
  */
 
-#include "BodynodeListener.h"
+#include "BnConstants.h"
 
-#include <string>
-#include "json.hpp"
+#ifndef __BN_UTILS_H
+#define __BN_UTILS_H
 
-#ifndef __BODYNODES_HOST_INTERFACE
-#define __BODYNODES_HOST_INTERFACE
+#include <thread>
+#include <map>
+#include <list>
 
-class BodynodesHostInterface {
-public:
-  virtual void start() = 0;
-  virtual void stop() = 0;
-  virtual void update() = 0;
-  virtual bool getMessageValue(std::string player, std::string bodypart, std::string sensortype, float outvalue[]) = 0;
-  virtual void addAction(nlohmann::json &action) = 0;
-  virtual void sendAllActions() = 0;
-  virtual bool addListener(BodynodeListener *listener) = 0;
-  virtual void removeListener(BodynodeListener *listener) = 0;
-  virtual void removeAllListeners() = 0;
 
-};
-
-#endif // __BODYNODES_HOST_INTERFACE
+#endif // __BN_UTILS_H
