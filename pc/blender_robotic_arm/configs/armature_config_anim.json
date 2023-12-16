@@ -1,0 +1,145 @@
+{
+    "lowerarm_left": {
+        "bone_name": "lowerarm_left",
+        "new_w_sign": 1,
+        "new_w_val": 0,
+        "new_x_sign": 1,
+        "new_x_val": 2,
+        "new_y_sign": 1,
+        "new_y_val": 3,
+        "new_z_sign": 1,
+        "new_z_val": 1
+    },
+    "lowerarm_right": {
+        "bone_name": "lowerarm_right",
+        "new_w_sign": 1,
+        "new_w_val": 0,
+        "new_x_sign": 1,
+        "new_x_val": 2,
+        "new_y_sign": 1,
+        "new_y_val": 3,
+        "new_z_sign": 1,
+        "new_z_val": 1
+    },
+    "head": {
+        "bone_name": "head",
+        "new_w_sign": 1,
+        "new_w_val": 0,
+        "new_x_sign": 1,
+        "new_x_val": 2,
+        "new_y_sign": 1,
+        "new_y_val": 3,
+        "new_z_sign": 1,
+        "new_z_val": 1
+    },
+    "lowerbody": {
+        "bone_name": "lowerbody",
+        "new_w_sign": 1,
+        "new_w_val": 0,
+        "new_x_sign": 1,
+        "new_x_val": 2,
+        "new_y_sign": 1,
+        "new_y_val": 3,
+        "new_z_sign": 1,
+        "new_z_val": 1
+    },
+    "lowerleg_left": {
+        "bone_name": "lowerleg_left",
+        "new_w_sign": 1,
+        "new_w_val": 0,
+        "new_x_sign": 1,
+        "new_x_val": 1,
+        "new_y_sign": -1,
+        "new_y_val": 3,
+        "new_z_sign": 1,
+        "new_z_val": 2
+    },
+    "lowerleg_right": {
+        "bone_name": "lowerleg_right",
+        "new_w_sign": 1,
+        "new_w_val": 0,
+        "new_x_sign": 1,
+        "new_x_val": 1,
+        "new_y_sign": -1,
+        "new_y_val": 3,
+        "new_z_sign": 1,
+        "new_z_val": 2
+    },
+    "upperarm_left": {
+        "bone_name": "upperarm_left",
+        "new_w_sign": 1,
+        "new_w_val": 0,
+        "new_x_sign": -1,
+        "new_x_val": 2,
+        "new_y_sign": 1,
+        "new_y_val": 3,
+        "new_z_sign": -1,
+        "new_z_val": 1
+    },
+    "upperarm_right": {
+        "bone_name": "upperarm_right",
+        "new_w_sign": 1,
+        "new_w_val": 0,
+        "new_x_sign": 1,
+        "new_x_val": 1,
+        "new_y_sign": 1,
+        "new_y_val": 3,
+        "new_z_sign": 1,
+        "new_z_val": 2
+    },
+    "upperbody": {
+        "bone_name": "upperbody",
+        "new_w_sign": 1,
+        "new_w_val": 0,
+        "new_x_sign": 1,
+        "new_x_val": 2,
+        "new_y_sign": 1,
+        "new_y_val": 3,
+        "new_z_sign": 1,
+        "new_z_val": 1
+    },
+    "upperleg_left": {
+        "bone_name": "upperleg_left",
+        "new_w_sign": 1,
+        "new_w_val": 0,
+        "new_x_sign": 1,
+        "new_x_val": 1,
+        "new_y_sign": -1,
+        "new_y_val": 3,
+        "new_z_sign": 1,
+        "new_z_val": 2
+    },
+    "upperleg_right": {
+        "bone_name": "upperleg_right",
+        "new_w_sign": 1,
+        "new_w_val": 0,
+        "new_x_sign": 1,
+        "new_x_val": 1,
+        "new_y_sign": -1,
+        "new_y_val": 3,
+        "new_z_sign": 1,
+        "new_z_val": 2
+    },
+    "hand_right": {
+        "bone_name": "hand_right",
+        "new_w_sign": 1,
+        "new_w_val": 0,
+        "new_x_sign": 1,
+        "new_x_val": 1,
+        "new_y_sign": 1,
+        "new_y_val": 2,
+        "new_z_sign": 1,
+        "new_z_val": 3
+    },
+    "hand_left": {
+        "bone_name": "hand_left",
+        "new_w_sign": 1,
+        "new_w_val": 0,
+        "new_x_sign": 1,
+        "new_x_val": 1,
+        "new_y_sign": 1,
+        "new_y_val": 2,
+        "new_z_sign": 1,
+        "new_z_val": 3
+    }
+}
