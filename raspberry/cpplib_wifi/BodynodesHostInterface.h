@@ -24,6 +24,7 @@
 
 #include "BodynodeListener.h"
 
+#include <list>
 #include <string>
 #include "json.hpp"
 
@@ -32,7 +33,7 @@
 
 class BodynodesHostInterface {
 public:
-  virtual void start() = 0;
+  virtual void start(std::list<std::string> identifiers) = 0;
   virtual void stop() = 0;
   virtual void update() = 0;
   virtual bool getMessageValue(std::string player, std::string bodypart, std::string sensortype, float outvalue[]) = 0;

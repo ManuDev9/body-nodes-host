@@ -39,7 +39,7 @@ class BodynodeListenerTest : public BodynodeListener {
 
 int main(){
   BnWifiHostCommunicator communicator;
-  communicator.start();
+  communicator.start({ "BN" });
   BodynodeListenerTest listener;
   
   char c_command = 'n';

@@ -32,7 +32,7 @@
 class BnWifiHostCommunicator : public BodynodesHostInterface {
 
 public:
-  void start();
+  void start(std::list<std::string> identifiers);
   void stop();
   void update();
   bool getMessageValue(std::string player, std::string bodypart, std::string sensortype, float outvalue[]);
@@ -64,6 +64,7 @@ private:
   UDPConnector                            whc_multicast_connector;
   std::list<nlohmann::json>               whc_actionsToSend;
   std::list<BodynodeListener*>            whc_bodynodesListeners;
+  std::string                             whc_identifier;
 };
 
 #endif // __BN_WIFI_HOST_COMMUNICATOR

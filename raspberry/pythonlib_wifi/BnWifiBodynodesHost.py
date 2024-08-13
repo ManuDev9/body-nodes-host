@@ -75,12 +75,17 @@ class BnWifiHostCommunicator:
     # List of actions to send
     self.whc_actionsToSend = []
     self.whc_bodynodesListeners = []
+    self.identifier = "BN"
 
 # Public functions
 
   # Starts the communicator
-  def start(self):
+  def start(self, identifier=None):
     print("BnWifiHostCommunicator - Starting")
+
+    if identifier != None:
+        self.identifier = identifier
+
     try:
       self.whc_connector.bind((bodynodes_server["host"], bodynodes_server["port"]))
     except:
@@ -225,7 +230,7 @@ class BnWifiHostCommunicator:
   def __sendMulticastBN(self):
     #print("self.multicast_socket = "+str(self.multicast_socket))
     #print("Sending a BN multicast")
-    self.whc_multicast_connector.sendto(b"BN", (bodynodes_server["multicast_group"], bodynodes_server["multicast_port"]))
+    self.whc_multicast_connector.sendto(self.identifier.encode('utf-8'), (bodynodes_server["multicast_group"], bodynodes_server["multicast_port"]))
 
   # Checks if there is an ACK in the connection data. Returns true if there is, false otherwise
   def __checkForACKN(self, connectionData):
@@ -281,7 +286,7 @@ class BnWifiHostCommunicator:
 
 if __name__=="__main__":
   communicator = BnWifiHostCommunicator()
-  communicator.start()
+  communicator.start("BN")
   listener = BodynodeListenerTest()
   command = "n"
   while command != "e":

@@ -40,8 +40,14 @@ void startFunMulticast(BnWifiHostCommunicator *comm) {
   comm->run_multicast_background();
 }
 
-void BnWifiHostCommunicator::start() {
+void BnWifiHostCommunicator::start(std::list<std::string> identifiers) {
   whc_toStop = false;
+  if( identifiers.size() > 0 ) {
+    // Only one identifier is taken
+    whc_identifier = identifiers.front();
+  } else {
+    whc_identifier = "BN";
+  }
   // create a UDP socket for data
   if ((whc_connector.socket_id =socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
     printf("Couldn't data start socket\n");
@@ -274,10 +280,14 @@ void BnWifiHostCommunicator::sendACKH(IPConnectionData &connectionData) {
 }
 
 void BnWifiHostCommunicator::sendMulticastBN() {
-  char tmp_buf[3] = {'B', 'N', '\0'};
+  uint8_t const length_id = whc_identifier.size()+1;
+  char tmp_buf[length_id];
+  std::strcpy(tmp_buf, whc_identifier.c_str());
+  tmp_buf[length_id-1] = '\0';
+
   //printf("Sending BN Multicast\n");
   int slen = sizeof(whc_multicast_connector.multicast_ip_address);
-  if (sendto(whc_connector.socket_id, tmp_buf, 3, 0, (struct sockaddr*) &whc_multicast_connector.multicast_ip_address, slen) == -1) {
+  if (sendto(whc_connector.socket_id, tmp_buf, sizeof(tmp_buf), 0, (struct sockaddr*) &whc_multicast_connector.multicast_ip_address, slen) == -1) {
     printf("Couldn't send BN Multicast\n");
   }
 }
