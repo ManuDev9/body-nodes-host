@@ -40,10 +40,10 @@ import uuid
 #              pairable on
 #              pair
 # rfkill list bluetooth
-# Name: Pixel 7 - Address: 24:95:2F:64:68:A6
-#              pair 24:95:2F:64:68:A6
-#              connect 24:95:2F:64:68:A6
-#              info 24:95:2F:64:68:A6
+# Name: Pixel A - Address: 13:95:2G:61:6P:C6
+#              pair 13:95:2G:61:6P:A6
+#              connect 13:95:2G:61:6P:C6
+#              info 13:95:2G:61:6P:C6
 #        UUID: Serial Port               (00001101-0000-1000-8000-00805f9b34fb)
 
 bodynodes_bt = {
@@ -81,7 +81,7 @@ class BnBluetoothHostCommunicator:
     self.bthc_toStop = True;
     # Json object containing the messages for each player+bodypart+sensortype combination (key)
     self.bthc_messagesMap = {}
-    # Map the connections (ip_address) to the player+bodypart combination (key)
+    # Map the connections (bt_address) to the player+bodypart combination (key)
     self.bthc_connectionsMap = {}
     # Map temporary connections data to an arbitrary string representation of a connection (key)
     self.bthc_tempConnectionsDataMap = {}
@@ -262,38 +262,48 @@ class BnBluetoothHostCommunicator:
       return
 
     message_str = connectionData["received_bytes"].decode("utf-8")
-    jsonMessages = None
-    try:
-      jsonMessages = json.loads(message_str)
-    except json.decoder.JSONDecodeError as err:
-      #print("Not a valid json: ", err)
-      pass
-      
-    if jsonMessages == None:
-      return
+
+    index_st = 0
+    jsonMessages = []
+    #print( "Original message_str = " + str(message_str) )
+    while index_st != -1:
+      index_st = message_str.find("{")
+      message_str = message_str[index_st:] 
+      index_end = message_str.find("}")
+      remaining_message_str = message_str[index_end+1:]
+      message_str = message_str[:index_end+1]
+      if message_str == "":
+        break;
+
+      jsonMessage = None
+      try:
+        # It loads arrays too
+        jsonMessage = json.loads(message_str)
+        jsonMessages.append(jsonMessage)
+      except json.decoder.JSONDecodeError as err:
+        print(message_str)
+        print("Not a valid json: ", err)
+      message_str = remaining_message_str
 
     tmp_connection_str = connectionData["bt_address"]
     self.bthc_tempConnectionsDataMap[tmp_connection_str]["last_rec_time"] = current_milli_time()
-    if not isinstance(jsonMessages, list):
-      jsonMessages = [jsonMessages]
-
-    self.__parseMessage(connectionData["bt_address"], jsonMessages)
+    self.__parseMessages(connectionData["bt_address"], jsonMessages)
     
   # Puts the json messages in the messages map and associated them with the connection
-  def __parseMessage(self, bt_address, jsonMessages):
-    for message in jsonMessages:    
+  def __parseMessages(self, bt_address, jsonMessages):
+    for message in jsonMessages:	
       if ("player" not in message) or ("bodypart" not in message) or ("sensortype" not in message) or ("value" not in message):
         printf("Json message received is incomplete\n");
         continue
-    player = message["player"]
-    bodypart = message["bodypart"]
-    sensortype = message["sensortype"]
-    self.bthc_connectionsMap[player+"_"+bodypart] = bt_address;
-    self.bthc_messagesMap[player+"_"+bodypart+"_"+sensortype] = message["value"];
+      player = message["player"]
+      bodypart = message["bodypart"]
+      sensortype = message["sensortype"]
+      self.bthc_connectionsMap[player+"_"+bodypart] = bt_address;
+      self.bthc_messagesMap[player+"_"+bodypart+"_"+sensortype] = message["value"];
     
-    for listener in self.bthc_bodynodesListeners:
-      if listener.isOfInterest(player, bodypart, sensortype ):
-        listener.onMessageReceived(player, bodypart, sensortype, message["value"])
+      for listener in self.bthc_bodynodesListeners:
+        if listener.isOfInterest(player, bodypart, sensortype ):
+          listener.onMessageReceived(player, bodypart, sensortype, message["value"])
 
 
 if __name__=="__main__":
