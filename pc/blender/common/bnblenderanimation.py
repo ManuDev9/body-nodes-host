@@ -23,6 +23,7 @@
 
 from socket import *
 import os
+import sys
 import threading
 import json
 import bpy
@@ -30,6 +31,11 @@ from mathutils import *
 import time
 import queue
 from bpy_extras.io_utils import ExportHelper, ImportHelper
+
+if "bnblenderutils" in sys.modules:
+    del sys.modules["bnblenderutils"]
+
+import bnblenderutils
 
 # This script is made for the FullSuit-11 and it is required to use and customize bodynodes animations
 

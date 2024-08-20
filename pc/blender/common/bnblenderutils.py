@@ -1,7 +1,7 @@
 #
 # MIT License
 # 
-# Copyright (c) 2023-2024 Manuel Bottini
+# Copyright (c) 2021-2024 Manuel Bottini
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,14 @@
 # SOFTWARE.
 #
 
+import glob
+import os
+import sys
+
+import bnblenderanimation
+import bnblenderconnect
+import bnblenderrecording
+
 import bpy
 import mathutils
 
@@ -40,24 +48,60 @@ bodynodes_objs_init = {
 	"upperleg_right": mathutils.Quaternion((-0.0000, 1.0000, 0.0000, -0.0000))
 }
 
+GLOVE_ANGLE_MIGNOLO=0
+GLOVE_ANGLE_ANULARE=1
+GLOVE_ANGLE_MEDIO  =2
+GLOVE_ANGLE_INDICE =3
+GLOVE_ANGLE_POLLICE=4
+GLOVE_TOUCH_MIGNOLO=5
+GLOVE_TOUCH_ANULARE=6
+GLOVE_TOUCH_MEDIO  =7
+GLOVE_TOUCH_INDICE =8
+
 bodynode_bones_init = [
-	"lowerarm_left",
-	"lowerarm_right",
-	"head",
-	"Hip",
-	"lowerbody",
-	"lowerleg_left",
-	"lowerleg_right",
-	"upperarm_left",
-	"upperarm_right",
-	"upperbody",
-	"upperleg_left",
-	"upperleg_right",
-	"hand_left",
-	"hand_right"
+    "lowerarm_left",
+    "lowerarm_right",
+    "head",
+    "Hip",
+    "lowerbody",
+    "lowerleg_left",
+    "lowerleg_right",
+    "upperarm_left",
+    "upperarm_right",
+    "upperbody",
+    "upperleg_left",
+    "upperleg_right",
+    "hand_left",
+    "hand_right"
 ]
 
 bodynode_fingers_init = [ "mignolo", "anulare", "medio", "indice", "pollice" ]
+
+def unregister(modules):
+    for module in modules:
+        if module == "bnblenderconnect":
+            bnblenderconnect.unregister_connect()
+        elif module == "bnblenderanimation":
+            bnblenderanimation.unregister_animation()
+        elif module == "bnblenderrecording":
+            bnblenderrecording.unregister_recording()
+
+def register(modules):
+    print("Modules = "+str(modules));
+    for module in modules:
+        if module == "bnblenderconnect":
+            bnblenderconnect.register_connect()
+        elif module == "bnblenderanimation":
+            bnblenderanimation.register_animation()
+        elif module == "bnblenderrecording":
+            bnblenderrecording.register_recording()
+
+
+def read_sensordata(data_json):
+    bnblenderrecording.read_sensordata(data_json)
+
+def reinit_bn_data():
+    bnblenderrecording.reinit_bn_data()
 
 def get_bone_global_rotation_quaternion(player_selected, bone):
 	if bone not in bpy.data.objects[player_selected].pose.bones:
@@ -141,5 +185,3 @@ def apply_bodynodes_to_player(player_selected, bodynodes_armature_config ):
 		if "Copy Rotation" not in bpy.data.objects[player_selected].pose.bones[bodypart].constraints:
 			bpy.data.objects[player_selected].pose.bones[bodypart].constraints.new(type = 'COPY_ROTATION')
 			bpy.data.objects[player_selected].pose.bones[bodypart].constraints["Copy Rotation"].target = bodynodeobj_ori
-
-

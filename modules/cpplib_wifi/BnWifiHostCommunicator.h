@@ -32,7 +32,7 @@
 class BnWifiHostCommunicator : public BodynodesHostInterface {
 
 public:
-  void start(std::list<std::string> identifiers);
+  void start(std::list<std::string> connectionParameters);
   void stop();
   void update();
   bool getMessageValue(std::string player, std::string bodypart, std::string sensortype, float outvalue[]);

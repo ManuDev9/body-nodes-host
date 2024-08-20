@@ -29,7 +29,6 @@ import json
 import time
 
 bodynodes_server = {
-  "host" : "192.168.0.26", # Raspberry PI local address, check it with "ifconfig" and change it
   "port" : 12345,
   "buffer_size" : 1024,
   "connection_keep_alive_rec_interval_ms" : 60000,
@@ -58,9 +57,9 @@ class BnWifiHostCommunicator:
   # Initializes the object, no input parameters are required
   def __init__(self):
     # Thread for data connection
-    self.whc_dataConnectionThread = threading.Thread(target=self.run_data_connection_background)
+    self.whc_dataConnectionThread = None
     # Thread to multicast ACKH
-    self.whc_multicastConnectionThread = threading.Thread(target=self.run_multicast_connection_background)
+    self.whc_multicastConnectionThread = None
     # Boolean to stop the thread
     self.whc_toStop = True;
     # Json object containing the messages for each player+bodypart+sensortype combination (key)
@@ -70,34 +69,54 @@ class BnWifiHostCommunicator:
     # Map temporary connections data to an arbitrary string representation of a connection (key)
     self.whc_tempConnectionsDataMap = {}
     # Connector object that can receive and send data
-    self.whc_connector = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK)
-    self.whc_multicast_connector = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP)
+    self.whc_connector = None
+    # Connector object that can advertise itself in the network
+    self.whc_multicast_connector = None
     # List of actions to send
     self.whc_actionsToSend = []
     self.whc_bodynodesListeners = []
-    self.identifier = "BN"
+    self.whc_identifier = None
 
 # Public functions
 
   # Starts the communicator
-  def start(self, identifier=None):
+  def start(self, communicationParameters):
     print("BnWifiHostCommunicator - Starting")
 
-    if identifier != None:
-        self.identifier = identifier
+    try:
+        self.whc_connector = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK)
+        self.whc_multicast_connector = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP)
+    except NameError:
+        self.whc_connector = socket(AF_INET, SOCK_DGRAM )
+        self.whc_multicast_connector = socket(AF_INET, SOCK_DGRAM , IPPROTO_UDP)
+    self.whc_connector.setblocking(False) 
+    self.whc_multicast_connector.setblocking(False)
+
+    self.whc_dataConnectionThread = threading.Thread(target=self.run_data_connection_background)
+    self.whc_multicastConnectionThread = threading.Thread(target=self.run_multicast_connection_background)
+
+    if communicationParameters == None or len(communicationParameters) != 1:
+      print("Please provide a Multicast Identifier, example [\"BN\"]")
+      return 
+   
+    self.whc_identifier = communicationParameters[0]
 
     try:
-      self.whc_connector.bind((bodynodes_server["host"], bodynodes_server["port"]))
+      self.whc_connector.bind(('', bodynodes_server["port"]))
     except:
       print("Cannot start socket. Is the IP address correct? Or is there any ip connection?")
 
     try:
       print("Interfaces = ")
-      print(gethostbyname_ex(gethostname()))
+      all_ifaces = gethostbyname_ex(gethostname())[2]
+      print(all_ifaces)
+      
       group = inet_aton(bodynodes_server["multicast_group"])
-      iface = inet_aton(bodynodes_server["host"]) # Connect the multicast packets on this interface.
+      #iface = inet_aton(self.whc_host_ip) # Connect the multicast packets on this interface.
       self.whc_multicast_connector.setsockopt(IPPROTO_IP, IP_MULTICAST_TTL, bodynodes_server["multicast_ttl"])
-      self.whc_multicast_connector.setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, group+iface)
+      for iface in all_ifaces:
+        print("Using interface = " + str(iface))
+        self.whc_multicast_connector.setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, group+inet_aton(iface))
     except Exception as er:
       print("Cannot start multicast socket. No network connections available?")
       print(er)
@@ -111,7 +130,20 @@ class BnWifiHostCommunicator:
     print("BnWifiHostCommunicator - Stopping")
     self.whc_toStop = True
     self.whc_connector.close()
+    self.whc_multicast_connector.close()
+    self.whc_dataConnectionThread.join()
+    self.whc_multicastConnectionThread.join()
+    print("BnWifiHostCommunicator - Stopped!")
     self.whc_bodynodesListeners = []
+
+    self.whc_dataConnectionThread = None
+    self.whc_multicastConnectionThread = None
+    self.whc_connector = None
+    self.whc_multicast_connector = None
+
+  # Indicates if the host is running and listening
+  def isRunning(self):
+    return not self.whc_toStop
 
   # Update function, not in use
   def update(self):
@@ -229,8 +261,8 @@ class BnWifiHostCommunicator:
   # Sends ACKH to a connection
   def __sendMulticastBN(self):
     #print("self.multicast_socket = "+str(self.multicast_socket))
-    #print("Sending a BN multicast")
-    self.whc_multicast_connector.sendto(self.identifier.encode('utf-8'), (bodynodes_server["multicast_group"], bodynodes_server["multicast_port"]))
+    print("Sending a BN multicast: "+str(self.whc_identifier))
+    self.whc_multicast_connector.sendto(self.whc_identifier.encode('utf-8'), (bodynodes_server["multicast_group"], bodynodes_server["multicast_port"]))
 
   # Checks if there is an ACK in the connection data. Returns true if there is, false otherwise
   def __checkForACKN(self, connectionData):
@@ -297,7 +329,7 @@ class BnWifiHostCommunicator:
 
 if __name__=="__main__":
   communicator = BnWifiHostCommunicator()
-  communicator.start("BN")
+  communicator.start(["BN"])
   listener = BodynodeListenerTest()
   command = "n"
   while command != "e":
