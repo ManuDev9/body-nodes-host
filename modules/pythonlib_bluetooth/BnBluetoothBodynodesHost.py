@@ -45,6 +45,10 @@ import uuid
 #              connect 13:95:2G:61:6P:C6
 #              info 13:95:2G:61:6P:C6
 #        UUID: Serial Port               (00001101-0000-1000-8000-00805f9b34fb)
+#
+# It is best to first run the app, and then pair it to propertly discover the UUID Serial Port
+# otherwise it might be seen. NOTE: This happens ONlY the first time the Host pair to the Node
+
 
 bodynodes_bt = {
   "buffer_size" : 1024,

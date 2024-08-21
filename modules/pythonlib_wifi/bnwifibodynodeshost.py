@@ -63,18 +63,18 @@ class BnWifiHostCommunicator:
     # Boolean to stop the thread
     self.whc_toStop = True;
     # Json object containing the messages for each player+bodypart+sensortype combination (key)
-    self.whc_messagesMap = {}
+    self.whc_messagesMap = None
     # Map the connections (ip_address) to the player+bodypart combination (key)
-    self.whc_connectionsMap = {}
+    self.whc_connectionsMap = None
     # Map temporary connections data to an arbitrary string representation of a connection (key)
-    self.whc_tempConnectionsDataMap = {}
+    self.whc_tempConnectionsDataMap = None
     # Connector object that can receive and send data
     self.whc_connector = None
     # Connector object that can advertise itself in the network
     self.whc_multicast_connector = None
     # List of actions to send
-    self.whc_actionsToSend = []
-    self.whc_bodynodesListeners = []
+    self.whc_actionsToSend = None
+    self.whc_bodynodesListeners = None
     self.whc_identifier = None
 
 # Public functions
@@ -83,6 +83,15 @@ class BnWifiHostCommunicator:
   def start(self, communicationParameters):
     print("BnWifiHostCommunicator - Starting")
 
+    self.whc_messagesMap = {}
+    self.whc_connectionsMap = {}
+    self.whc_tempConnectionsDataMap = {}
+    self.whc_connector = None
+    self.whc_multicast_connector = None
+    self.whc_actionsToSend = []
+    self.whc_bodynodesListeners = []
+    self.whc_identifier = None
+    
     try:
         self.whc_connector = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK)
         self.whc_multicast_connector = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP)
@@ -202,6 +211,7 @@ class BnWifiHostCommunicator:
           self.whc_tempConnectionsDataMap[tmp_connection_str]["STATUS"]  = "DISCONNECTED"
         if self.__checkForACKN(self.whc_tempConnectionsDataMap[tmp_connection_str]):
           print("Received ACKN")
+          self.__sendACKH(self.whc_tempConnectionsDataMap[tmp_connection_str])
         else:
           self.__checkForMessages(self.whc_tempConnectionsDataMap[tmp_connection_str])
       self.whc_tempConnectionsDataMap[tmp_connection_str]["received_bytes"] = None
