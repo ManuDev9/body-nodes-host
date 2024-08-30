@@ -1,6 +1,6 @@
 {
-    "lowerarm_left": {
-        "bone_name": "lowerarm_left",
+    "hand_left": {
+        "bone_name": "hand_left",
         "new_w_sign": 1,
         "new_w_val": 0,
         "new_x_sign": 1,
@@ -10,8 +10,8 @@
         "new_z_sign": 1,
         "new_z_val": 3
     },
-    "lowerarm_right": {
-        "bone_name": "lowerarm_right",
+    "hand_right": {
+        "bone_name": "hand_right",
         "new_w_sign": 1,
         "new_w_val": 0,
         "new_x_sign": 1,
@@ -29,6 +29,28 @@
         "new_x_val": 1,
         "new_y_sign": 1,
         "new_y_val": 2,
+        "new_z_sign": 1,
+        "new_z_val": 3
+    },
+    "lowerarm_left": {
+        "bone_name": "lowerarm_left",
+        "new_w_sign": 1,
+        "new_w_val": 0,
+        "new_x_sign": 1,
+        "new_x_val": 1,
+        "new_y_sign": 1,
+        "new_y_val": 2,
+        "new_z_sign": 1,
+        "new_z_val": 3
+    },
+    "lowerarm_right": {
+        "bone_name": "lowerarm_right",
+        "new_w_sign": -1,
+        "new_w_val": 0,
+        "new_x_sign": -1,
+        "new_x_val": 2,
+        "new_y_sign": 1,
+        "new_y_val": 1,
         "new_z_sign": 1,
         "new_z_val": 3
     },
@@ -119,27 +141,5 @@
         "new_y_val": 3,
         "new_z_sign": 1,
         "new_z_val": 2
-    },
-    "hand_right": {
-        "bone_name": "hand_right",
-        "new_w_sign": 1,
-        "new_w_val": 0,
-        "new_x_sign": 1,
-        "new_x_val": 1,
-        "new_y_sign": 1,
-        "new_y_val": 2,
-        "new_z_sign": 1,
-        "new_z_val": 3
-    },
-    "hand_left": {
-        "bone_name": "hand_left",
-        "new_w_sign": 1,
-        "new_w_val": 0,
-        "new_x_sign": 1,
-        "new_x_val": 1,
-        "new_y_sign": 1,
-        "new_y_val": 2,
-        "new_z_sign": 1,
-        "new_z_val": 3
     }
 }

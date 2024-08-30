@@ -45,6 +45,7 @@ def current_milli_time():
 class BodynodeListener:
   def onMessageReceived(self, player, bodypart, sensortype, value):
     print("onMessageReceive: player="+player + " bodypart="+bodypart + " sensortype="+sensortype + " value="+str(value))
+
   def isOfInterest(self, player, bodypart, sensortype):
     return True
 
@@ -52,8 +53,35 @@ class BodynodeListenerTest(BodynodeListener):
   def __init__(self):
     print("This is a test class")
 
+# This is class that helps in the conversion of data
+class BodynodesData:
+  def __init__(self):
+    self.reorient_axis = { "new_w" : 0, "new_x" : 1, "new_y" : 2, "new_z" : 3  }
+    self.reorient_sign = { "w" : 1, "x" : 1, "y" : 1, "z" : 1  }
+
+  # Change the orientation of received data to align to the main application
+  # new_axis is an array of 4 integer that can be 0 ('w'), 1 ('x'), 2 ('y'), or 3 ('z').
+  # Example [ 0, 1, 2, 3]
+  # signs is an array of 4 integers that can be 1 or -1. Example [1, 1, 1, 1]
+  # Note: by default the orientation is set as [ 0, 1, 2, 3 ] and [1, 1, 1, 1] 
+  def configOrientationAbs( self, new_axis, signs ):
+    self.reorient_axis["new_w"] = new_axis[0]
+    self.reorient_axis["new_x"] = new_axis[1]
+    self.reorient_axis["new_y"] = new_axis[2]
+    self.reorient_axis["new_z"] = new_axis[3]
+    self.reorient_sign["w"] = signs[0]
+    self.reorient_sign["x"] = signs[1]
+    self.reorient_sign["y"] = signs[2]
+    self.reorient_sign["z"] = signs[3]
+
+  def changeOrientationAbs( self, values ):
+    oW = values[ self.reorient_axis["new_w"] ] * self.reorient_sign["w"]
+    oX = values[ self.reorient_axis["new_x"] ] * self.reorient_sign["x"]
+    oY = values[ self.reorient_axis["new_y"] ] * self.reorient_sign["y"]
+    oZ = values[ self.reorient_axis["new_z"] ] * self.reorient_sign["z"]
+    return [ oW, oX, oY, oZ ]
+
 class BnWifiHostCommunicator:
-	
   # Initializes the object, no input parameters are required
   def __init__(self):
     # Thread for data connection
@@ -167,7 +195,6 @@ class BnWifiHostCommunicator:
     while not self.whc_toStop:
       self.__sendMulticastBN()
       time.sleep(5)
-    
 
   # Returns the message associated to the requested player+bodypart+sensortype combination
   def getMessageValue(self, player, bodypart, sensortype):
@@ -265,13 +292,13 @@ class BnWifiHostCommunicator:
 
   # Sends ACKH to a connection
   def __sendACKH(self, connectionData):
-    print( "Sending ACK to = " +connectionData["ip_address"] )
+    # print( "Sending ACKH to = " +connectionData["ip_address"] )
     self.whc_connector.sendto(str.encode("ACKH"), (connectionData["ip_address"], 12345))
 
   # Sends ACKH to a connection
   def __sendMulticastBN(self):
     #print("self.multicast_socket = "+str(self.multicast_socket))
-    print("Sending a BN multicast: "+str(self.whc_identifier))
+    #print("Sending a BN multicast: "+str(self.whc_identifier))
     self.whc_multicast_connector.sendto(self.whc_identifier.encode('utf-8'), (bodynodes_server["multicast_group"], bodynodes_server["multicast_port"]))
 
   # Checks if there is an ACK in the connection data. Returns true if there is, false otherwise
@@ -329,8 +356,8 @@ class BnWifiHostCommunicator:
       player = message["player"]
       bodypart = message["bodypart"]
       sensortype = message["sensortype"]
-      self.whc_connectionsMap[player+"_"+bodypart] = ip_address;
-      self.whc_messagesMap[player+"_"+bodypart+"_"+sensortype] = message["value"];
+      self.whc_connectionsMap[player+"_"+bodypart] = ip_address
+      self.whc_messagesMap[player+"_"+bodypart+"_"+sensortype] = message["value"]
     
       for listener in self.whc_bodynodesListeners:
         if listener.isOfInterest(player, bodypart, sensortype ):

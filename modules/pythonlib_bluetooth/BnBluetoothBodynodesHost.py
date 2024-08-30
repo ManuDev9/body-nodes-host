@@ -75,6 +75,34 @@ class BodynodeListenerTest(BodynodeListener):
   def __init__(self):
     print("This is a test class")
 
+# This is class that helps in the conversion of data
+class BodynodesData:
+  def __init__(self):
+    self.reorient_axis = { "new_w" : 0, "new_x" : 1, "new_y" : 2, "new_z" : 3  }
+    self.reorient_sign = { "w" : 1, "x" : 1, "y" : 1, "z" : 1  }
+
+  # Change the orientation of received data to align to the main application
+  # new_axis is an array of 4 integer that can be 0 ('w'), 1 ('x'), 2 ('y'), or 3 ('z').
+  # Example [ 0, 1, 2, 3]
+  # signs is an array of 4 integers that can be 1 or -1. Example [1, 1, 1, 1]
+  # Note: by default the orientation is set as [ 0, 1, 2, 3 ] and [1, 1, 1, 1] 
+  def configOrientationAbs( self, new_axis, signs ):
+    self.reorient_axis["new_w"] = new_axis[0]
+    self.reorient_axis["new_x"] = new_axis[1]
+    self.reorient_axis["new_y"] = new_axis[2]
+    self.reorient_axis["new_z"] = new_axis[3]
+    self.reorient_sign["w"] = signs[0]
+    self.reorient_sign["x"] = signs[1]
+    self.reorient_sign["y"] = signs[2]
+    self.reorient_sign["z"] = signs[3]
+
+  def changeOrientationAbs( self, values ):
+    oW = values[ self.reorient_axis["new_w"] ] * self.reorient_sign["w"]
+    oX = values[ self.reorient_axis["new_x"] ] * self.reorient_sign["x"]
+    oY = values[ self.reorient_axis["new_y"] ] * self.reorient_sign["y"]
+    oZ = values[ self.reorient_axis["new_z"] ] * self.reorient_sign["z"]
+    return [ oW, oX, oY, oZ ]
+
 class BnBluetoothHostCommunicator:
 
   # Initializes the object, no input parameters are required
