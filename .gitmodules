@@ -1,0 +1,3 @@
+[submodule "body-nodes-common"]
+	path = body-nodes-common
+	url = https://github.com/ManuDev9/body-nodes-common.git
