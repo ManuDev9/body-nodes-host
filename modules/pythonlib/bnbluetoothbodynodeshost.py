@@ -198,6 +198,8 @@ class BnBluetoothHostCommunicator:
             action_str = json.dumps(action)
             self.bthc_connectors[self.bthc_connectionsMap[player_bodypart]].send(action_str.encode("utf-8"))
 
+        self.bthc_actionsToSend = []
+
     # Checks if everything is ok. Returns true if it is indeed ok, false otherwise
     def checkAllOk(self):
         self.__receiveBytes()

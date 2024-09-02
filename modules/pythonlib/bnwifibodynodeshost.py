@@ -188,6 +188,8 @@ class BnWifiHostCommunicator:
             action_str = json.dumps(action)
             self.whc_connector.sendto(str.encode(action_str), (self.whc_connectionsMap[player_bodypart], 12345))
 
+        self.whc_actionsToSend = []
+
     # Checks if everything is ok. Returns true if it is indeed ok, false otherwise
     def checkAllOk(self):
         self.__receiveBytes()

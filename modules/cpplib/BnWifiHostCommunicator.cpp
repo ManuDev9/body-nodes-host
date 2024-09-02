@@ -163,10 +163,10 @@ void BnWifiHostCommunicator::sendAllActions() {
     std::string player_bodypart = action[ACTION_PLAYER_TAG];
     player_bodypart.append("_");
     player_bodypart.append(action[ACTION_BODYPART_TAG]);
-	if(whc_connectionsMap.count(player_bodypart) == 0){
+	  if(whc_connectionsMap.count(player_bodypart) == 0){
       printf("Player+Bodypart connection not existing\n");
       continue;
-	}
+	  }
     sockaddr_in remote_socket = whc_connectionsMap[player_bodypart];
     std::string action_str = action.dump();     
 	int slen = sizeof(remote_socket);
