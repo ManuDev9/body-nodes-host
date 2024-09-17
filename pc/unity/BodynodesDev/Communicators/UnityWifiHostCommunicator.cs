@@ -59,11 +59,12 @@ namespace BodynodesDev
 
         private bool mToStop;
 
-        public void start()
+        public void start(List<string> parameters)
         {
             // Start TcpServer background thread 		
             mToStop = false;
             mIpRequesting = null;
+            mMulticastMessage = parameters[0];
 
             mDataConnectionThread = new Thread(new ThreadStart(run_connection_background));
             mDataConnectionThread.Start();
@@ -94,11 +95,6 @@ namespace BodynodesDev
         public void update()
         {
             //nothing to do here
-        }
-
-        public void setHostName(string name)
-        {
-            mMulticastMessage = name;
         }
 
         void sendACKH(IPEndPoint ipEndpoint)

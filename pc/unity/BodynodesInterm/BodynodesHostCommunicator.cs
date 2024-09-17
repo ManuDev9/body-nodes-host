@@ -25,6 +25,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening.Core.Easing;
+using UnityEngine.SocialPlatforms.Impl;
+using System.Security.Cryptography;
 
 #if __BODYNODES_DEV
 using BodynodesDev;
@@ -34,15 +37,37 @@ using BodynodesP;
 #error "You need to set up the preprocessing environment flag in Unity: 'File' -> 'Buil Settings' -> 'Player Settings' -> 'Player' -> 'Script Compilation'. Click on + and then add __BODYNODES_P or __BODYNODES_DEV, depending if you you want an prod or dev environment"
 #endif
 
-public class BodynodesHostCommunicator : MonoBehaviour
+public class BodynodesHostCommunicator
 {
-    public TextMesh mDebugText = null;
 
 #if __BODYNODES_DEV
     private BodynodesDev.BodynodesHostCommunicator mHostCommunicator = new BodynodesDev.BodynodesHostCommunicator();
 #elif __BODYNODES_P
     private BodynodesP.BodynodesHostCommunicatorP mHostCommunicator = new BodynodesP.BodynodesHostCommunicator();
 #endif
+
+    // The static instance of the class (the singleton)
+    private static BodynodesHostCommunicator _instance;
+
+    // Public accessor to get the singleton instance
+    public static BodynodesHostCommunicator Instance
+    {
+        get
+        {
+            // If the instance hasn't been created yet, create it
+            if (_instance == null)
+            {
+                _instance = new BodynodesHostCommunicator();
+            }
+            return _instance;
+        }
+    }
+
+    // Private constructor to prevent instantiation from outside
+    private BodynodesHostCommunicator()
+    {
+    }
+
     public BodynodesHostInterface getInternalHostCommunicator()
     {
         return mHostCommunicator.getInternalHostCommunicator();
@@ -50,10 +75,9 @@ public class BodynodesHostCommunicator : MonoBehaviour
 
     // Use this for initialization
     //Called before Start() of all the other objects
-    void Awake()
+    public void start(List<string> parameters)
     {
-        mHostCommunicator.mDebugText = mDebugText;
-        mHostCommunicator.Awake();
+        mHostCommunicator.start(parameters);
     }
 
     public void addAction(BnDatatypes.BnAction action)
@@ -61,20 +85,15 @@ public class BodynodesHostCommunicator : MonoBehaviour
         mHostCommunicator.addAction(action);
     }
 
-    public void setHostName(string name)
-    {
-        mHostCommunicator.setHostName(name);
-    }
-
     // Update is called once per frame
-    void Update()
+    public void update()
     {
-        mHostCommunicator.Update();
+        mHostCommunicator.update();
     }
 
-    void OnDestroy()
+    public void stop()
     {
-        mHostCommunicator.OnDestroy();
+        mHostCommunicator.stop();
     }
 
     public string anyNodeRequesting()

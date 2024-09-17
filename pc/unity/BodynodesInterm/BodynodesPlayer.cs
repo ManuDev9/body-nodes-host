@@ -59,14 +59,8 @@ using BodynodesP;
 
 public class BodynodesPlayer : MonoBehaviour
 {
-    public BodynodesHostCommunicator mBodynodesHostCommunicator;
 
     private BnDatatypes.BnName mPlayer = new BnDatatypes.BnName { value = BnConstants.PLAYER_NONE_TAG };
-
-    public BodynodesHostInterface getInternalHostCommunicator()
-    {
-        return mBodynodesHostCommunicator.getInternalHostCommunicator();
-    }
 
     public BnDatatypes.BnName getPlayer()
     {

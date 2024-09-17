@@ -54,7 +54,7 @@ namespace BodynodesP
             {
                 thisText.text = 'x'.ToString();
             }
-            virtualBodynodeToConfigure.GetComponent<BodynodesController>().setAxisVal('x', thisText.text[0]);
+            virtualBodynodeToConfigure.GetComponent<BodynodesController>().new_x_val = thisText.text[0];
             virtualBodynodeToConfigure.GetComponent<BodynodesController>().resetPosition();
         }
 

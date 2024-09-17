@@ -23,6 +23,7 @@
 */
 
 using UnityEngine;
+using System.Collections.Generic;
 
 #if __BODYNODES_DEV
 using BodynodesDev;
@@ -38,7 +39,8 @@ public interface BodynodesHostInterface
     void setDebugUI(TextMesh debugUI);
 
     // Starts and initializes the receiver object 
-    void start();
+    // Set the name of the host. It can be used to identify itself to the nodes
+    void start(List<string> parameters);
     // Stops the receiver
     void stop();
 
@@ -53,9 +55,6 @@ public interface BodynodesHostInterface
 
     // Sends all actions in the queue and clears it
     public void sendAllActions();
-
-    // Set the name of the host. It can be used to identify itself to the nodes
-    public void setHostName(string name);
 
     // If any node requesting it returns identifier, otherwise null
     public string anyNodeRequesting();

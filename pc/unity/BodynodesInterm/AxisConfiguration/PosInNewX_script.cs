@@ -47,7 +47,8 @@ namespace BodynodesP
 			{
 				thisText.text = '+'.ToString();
 			}
-            virtualBodynodeToConfigure.GetComponent<BodynodesController>().setAxisSign('x', thisText.text[0]);
+
+            virtualBodynodeToConfigure.GetComponent<BodynodesController>().new_x_sign = thisText.text[0];
             virtualBodynodeToConfigure.GetComponent<BodynodesController>().resetPosition();
 		}
 

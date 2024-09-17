@@ -25,6 +25,8 @@
 using UnityEngine;
 using System.Collections;
 using UnityEditor;
+using System.Reflection;
+using System;
 
 #if __BODYNODES_DEV
 using BodynodesDev;
@@ -50,6 +52,7 @@ public class BodynodesController : MonoBehaviour
     private Quaternion mReadQuat;
     private Quaternion mOffsetQuat;
     private Quaternion mStartQuat;
+    private BnReorientAxis mReorientAxis;
 
     //Communication
     private bool mReceivingMessages;
@@ -60,89 +63,129 @@ public class BodynodesController : MonoBehaviour
     public char new_z_val = 'x';
 
     public char new_w_sign = '+';
-    public char new_x_sign = '+';
+    public char new_x_sign = '-';
     public char new_y_sign = '+';
     public char new_z_sign = '+';
-    public void setAxisVal(char game_axis, char sens_axis)
+
+    private void setupReiorient()
     {
-        if (game_axis == 'w')
+        int[] ioAxis = new int[] { 0, 1, 2, 3 };
+        int[] ioSign = new int[] { -1, 1, 1, 1 };
+
+        if (new_w_val == 'w')
         {
-            new_w_val = sens_axis;
+            ioAxis[0] = 0;
         }
-        else if (game_axis == 'x')
+        else if (new_w_val == 'x' )
         {
-            new_x_val = sens_axis;
+            ioAxis[0] = 1;
         }
-        else if (game_axis == 'y')
+        else if (new_w_val == 'y')
         {
-            new_y_val = sens_axis;
+            ioAxis[0] = 2;
         }
-        else if (game_axis == 'z')
+        else if (new_w_val == 'z')
         {
-            new_z_val = sens_axis;
+            ioAxis[0] = 3;
         }
+
+        /////////
+        if (new_x_val == 'w')
+        {
+            ioAxis[1] = 0;
+        }
+        else if (new_x_val == 'x')
+        {
+            ioAxis[1] = 1;
+        }
+        else if (new_x_val == 'y')
+        {
+            ioAxis[1] = 2;
+        }
+        else if (new_x_val == 'z')
+        {
+            ioAxis[1] = 3;
+        }
+
+        /////////
+        if (new_y_val == 'w')
+        {
+            ioAxis[2] = 0;
+        }
+        else if (new_y_val == 'x')
+        {
+            ioAxis[2] = 1;
+        }
+        else if (new_y_val == 'y')
+        {
+            ioAxis[2] = 2;
+        }
+        else if (new_y_val == 'z')
+        {
+            ioAxis[2] = 3;
+        }
+
+        /////////
+        if (new_z_val == 'w')
+        {
+            ioAxis[3] = 0;
+        }
+        else if (new_z_val == 'x')
+        {
+            ioAxis[3] = 1;
+        }
+        else if (new_z_val == 'y')
+        {
+            ioAxis[3] = 2;
+        }
+        else if (new_z_val == 'z')
+        {
+            ioAxis[3] = 3;
+        }
+
+        //////////
+        if (new_w_sign == '+')
+        {
+            ioSign[0] = 1;
+        }
+        else if (new_w_sign == '-')
+        {
+            ioSign[0] = -1;
+        }
+
+        //////////
+        if (new_x_sign == '+')
+        {
+            ioSign[1] = 1;
+        }
+        else if (new_x_sign == '-')
+        {
+            ioSign[1] = -1;
+        }
+
+        //////////
+        if (new_y_sign == '+')
+        {
+            ioSign[2] = 1;
+        }
+        else if (new_y_sign == '-')
+        {
+            ioSign[2] = -1;
+        }
+
+        //////////
+        if (new_z_sign == '+')
+        {
+            ioSign[3] = 1;
+        }
+        else if (new_z_sign == '-')
+        {
+            ioSign[3] = -1;
+        }
+
+        mReorientAxis.config(ioAxis, ioSign);
     }
 
-    public void setAxisSign(char game_axis, char sign)
-    {
-        if (game_axis == 'w')
-        {
-            new_w_sign = sign;
-        }
-        else if (game_axis == 'x')
-        {
-            new_x_sign = sign;
-        }
-        else if (game_axis == 'y')
-        {
-            new_y_sign = sign;
-        }
-        else if (game_axis == 'z')
-        {
-            new_z_sign = sign;
-        }
-    }
-
-    public char getAxisVal(char game_axis)
-    {
-        if (game_axis == 'w')
-        {
-            return new_w_val;
-        }
-        else if (game_axis == 'x')
-        {
-            return new_x_val;
-        }
-        else if (game_axis == 'y')
-        {
-            return new_y_val;
-        }
-        else if (game_axis == 'z')
-        {
-            return new_z_val;
-        }
-        return ' ';
-    }
-    public char getAxisSign(char game_axis)
-    {
-        if (game_axis == 'w')
-        {
-            return new_w_sign;
-        }
-        else if (game_axis == 'x')
-        {
-            return new_x_sign;
-        }
-        else if (game_axis == 'y')
-        {
-            return new_y_sign;
-        }
-        else if (game_axis == 'z')
-        {
-            return new_z_sign;
-        }
-        return ' ';
-    }
 
     public bool isReceiving() {
         return mIsReceiving;
@@ -154,9 +197,10 @@ public class BodynodesController : MonoBehaviour
         mIsReceiving = false;
         //I get the components
         //cDebugText = null;
-        mBodynodesHost = mMainPlayer.getInternalHostCommunicator();
+        mBodynodesHost =  BodynodesHostCommunicator.Instance.getInternalHostCommunicator();
 
         Debug.Log("mBodynodes = " + mBodynodesHost);
+        mReorientAxis = new BnReorientAxis();
 
         mOffsetQuat = new Quaternion(0, 0, 0, 0);
         mReadQuat = new Quaternion(0, 0, 0, 0);
@@ -253,107 +297,25 @@ public class BodynodesController : MonoBehaviour
             return;
         }
 
-        float[] values = message.getData().getValuesFloat();
+        float[] valuesTmp = message.getData().getValuesFloat();
+        float[] values = new float[valuesTmp.Length];
+        values[0] = valuesTmp[0];
+        values[1] = valuesTmp[1];
+        values[2] = valuesTmp[2];
+        values[3] = valuesTmp[3];
 
         Debug.Log(mBodypart + " values.Length = " + values.Length);
         Debug.Log(mBodypart + " values = " + values[0] + ", " + values[1] + ", " + values[2] + ", " + values[3]);
 
         mReceivingMessages = true;
-        float w = values[0];
-        float x = values[1];
-        float y = values[2];
-        float z = values[3];
 
-        float new_w = w;
-        float new_x = x;
-        float new_y = y;
-        float new_z = z;
-        if (getAxisVal('x') == 'x')
-        {
-            new_x = x;
-        }
-        else if (getAxisVal('x') == 'y')
-        {
-            new_x = y;
-        }
-        else if (getAxisVal('x') == 'z')
-        {
-            new_x = z;
-        }
-        else if (getAxisVal('x') == 'w')
-        {
-            new_x = w;
-        }
+        setupReiorient();
+        mReorientAxis.apply(values);
+        Debug.Log(mBodypart + " after values = " + values[0] + ", " + values[1] + ", " + values[2] + ", " + values[3]);
 
-        if (getAxisVal('y') == 'x')
-        {
-            new_y = x;
-        }
-        else if (getAxisVal('y') == 'y')
-        {
-            new_y = y;
-        }
-        else if (getAxisVal('y') == 'z')
-        {
-            new_y = z;
-        }
-        else if (getAxisVal('y') == 'w')
-        {
-            new_y = w;
-        }
 
-        if (getAxisVal('z') == 'x')
-        {
-            new_z = x;
-        }
-        else if (getAxisVal('z') == 'y')
-        {
-            new_z = y;
-        }
-        else if (getAxisVal('z') == 'z')
-        {
-            new_z = z;
-        }
-        else if (getAxisVal('z') == 'w')
-        {
-            new_z = w;
-        }
 
-        if (getAxisVal('w') == 'x')
-        {
-            new_w = x;
-        }
-        else if (getAxisVal('w') == 'y')
-        {
-            new_w = y;
-        }
-        else if (getAxisVal('w') == 'z')
-        {
-            new_w = z;
-        }
-        else if (getAxisVal('w') == 'w')
-        {
-            new_w = w;
-        }
-
-        if (getAxisSign('x') == '-')
-        {
-            new_x = -new_x;
-        }
-        if (getAxisSign('y') == '-')
-        {
-            new_y = -new_y;
-        }
-        if (getAxisSign('z') == '-')
-        {
-            new_z = -new_z;
-        }
-        if (getAxisSign('w') == '-')
-        {
-            new_w = -new_w;
-        }
-
-        mReadQuat.Set(new_w, new_x, new_y, new_z);
+        mReadQuat.Set(values[0], values[1], values[2], values[3]);
 
         if (mOffsetQuat.w == 0 && mOffsetQuat.x == 0 && mOffsetQuat.y == 0 && mOffsetQuat.z == 0)
         {
@@ -364,6 +326,8 @@ public class BodynodesController : MonoBehaviour
         mTargetQuat = mStartQuat * mOffsetQuat * mReadQuat;
 
     }
+
+
 
     public void sendHapticAction(ushort duration_ms, ushort strength)
     {

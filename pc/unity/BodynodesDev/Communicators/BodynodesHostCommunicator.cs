@@ -22,7 +22,6 @@
 * SOFTWARE.
 */
 
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -32,18 +31,18 @@ namespace BodynodesDev
     {
         public TextMesh mDebugText = null;
 
-        private BodynodesHostInterface mBodynodesHost;
+        private BodynodesHostInterface mBodynodesHost = null;
 
         // Use this for initialization
         //Called before Start() of all the other objects
-        public void Awake()
+        public void start(List<string> parameters)
         {
 #if __WIFI_NODES
             mBodynodesHost = new UnityWifiHostCommunicator();
 #else
 #error "You need to set up the preprocessing host communicator type flag and (optionally) platform type in Unity: 'File' -> 'Buil Settings' -> 'Player Settings' -> 'Player' -> 'Script Compilation'. Click on + and then add one of the following combination flags: __WIFI_NODES or __BUILD_WINDOWS_PC"
 #endif
-            mBodynodesHost.start();
+            mBodynodesHost.start(parameters);
             mBodynodesHost.setDebugUI(mDebugText);
             Debug.Log("mBodynodesHost = " + mBodynodesHost);
         }
@@ -53,25 +52,23 @@ namespace BodynodesDev
             return mBodynodesHost;
         }
 
-        public void setHostName(string name)
-        {
-            mBodynodesHost.setHostName(name);
-        }
-
         public void addAction(BnDatatypes.BnAction action) { 
             mBodynodesHost.addAction(action);
         }
 
         // Update is called once per frame
-        public void Update()
+        public void update()
         {
             mBodynodesHost.update();
             mBodynodesHost.sendAllActions();
         }
 
-        public void OnDestroy()
+        public void stop()
         {
-            mBodynodesHost.stop();
+            if(mBodynodesHost != null)
+            {
+                mBodynodesHost.stop();
+            }
         }
 
         public string anyNodeRequesting()
