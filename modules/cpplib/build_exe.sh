@@ -24,4 +24,4 @@
 
 #!/bin/sh
 
-g++ -o test -g test.cpp BnWifiHostCommunicator.cpp -lpthread
+g++ -o test -g test.cpp -I../../body-nodes-common/cpp/  BnWifiHostCommunicator.cpp -lpthread

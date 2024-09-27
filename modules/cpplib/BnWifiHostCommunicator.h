@@ -24,7 +24,7 @@
 
 #include "BodynodesHostInterface.h"
 #include "BnUtils.h"
-#include "BnDataTypes.h"
+#include "BnDatatypes.h"
 
 #ifndef __BN_WIFI_HOST_COMMUNICATOR
 #define __BN_WIFI_HOST_COMMUNICATOR

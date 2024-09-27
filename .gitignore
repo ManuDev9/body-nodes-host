@@ -1,3 +1,5 @@
 __pycache__
 *.meta
+*.o
+*.so
 modules/cpplib_wifi/test
