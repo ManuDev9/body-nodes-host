@@ -27,8 +27,10 @@ using System.Collections.Generic;
 
 #if __BODYNODES_DEV
 using BodynodesDev;
+using BodynodesDev.Common;
 #elif __BODYNODES_P
 using BodynodesP;
+using BodynodesP.Common;
 #else
 #error "You need to set up the preprocessing environment flag in Unity: 'File' -> 'Buil Settings' -> 'Player Settings' -> 'Player' -> 'Script Compilation'. Click on + and then add __BODYNODES_P or __BODYNODES_DEV, depending if you you want an prod or dev environment"
 #endif

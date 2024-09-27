@@ -34,6 +34,8 @@ using System.Threading;
 using System.Net;
 using System.Net.Sockets;
 
+using BodynodesDev.Common;
+
 namespace BodynodesDev
 {
     public class UnityWifiHostCommunicator : BodynodesHostInterface
