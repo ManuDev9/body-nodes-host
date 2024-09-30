@@ -81,5 +81,15 @@ namespace BodynodesDev
         {
             mBodynodesHost.acceptNodeRequesting(identifier);
         }
+
+        public bool isRunning() {
+            if (mBodynodesHost != null)
+            {
+                return mBodynodesHost.isRunning();
+            }
+            else {
+                return false;
+            }
+        }
     }
 }

@@ -107,4 +107,9 @@ public class BodynodesHostCommunicator
     {
         mHostCommunicator.acceptNodeRequesting(identifier);
     }
+
+    public bool isRunning()
+    {
+        return mHostCommunicator.isRunning();
+    }
 }

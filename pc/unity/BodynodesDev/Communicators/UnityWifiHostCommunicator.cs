@@ -129,6 +129,11 @@ namespace BodynodesDev
 
 #if UNITY_STANDALONE_WIN
             string localIPAddress = GetLocalIPAddress();
+            if (localIPAddress == null) {
+                Debug.Log("No local IP, you are probably not connected to the network");
+                mToStop = true;
+                return;
+            }
             Debug.Log("GetLocalIPAddress() = " + localIPAddress);
             mMulticastConnector.JoinMulticastGroup(mMulticastGroupAddress, IPAddress.Parse(localIPAddress));
 #else
@@ -169,7 +174,7 @@ namespace BodynodesDev
                     }
                 }
             }
-            throw new Exception("No network adapters with an IPv4 address in the system!");
+            return null;
         }
 
         private void run_connection_background()
@@ -387,6 +392,11 @@ namespace BodynodesDev
             {
                 Debug.Log("Another identifer gor accepted id = " + identifier + " mIpRequesting = " + mIpRequesting);
             }
+        }
+
+        public bool isRunning()
+        {
+            return !mToStop;
         }
     }
 }

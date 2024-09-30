@@ -64,4 +64,7 @@ public interface BodynodesHostInterface
     // It accepts the node requesting to connect
     public void acceptNodeRequesting(string identifier);
 
+    // It returns if the host is running or not
+    public bool isRunning();
+
 }
