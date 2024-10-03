@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Bodynodes Host</string>
+    <string name="main_page_start_ble">Start BLE</string>
+    <string name="main_page_start_bluetooth">Start Bluetooth</string>
+    <string name="main_page_start_wifi">Start Wifi</string>
+    <string name="main_page_stop">Stop</string>
+    <string name="main_page_title">Bodynodes Host Sample App</string>
+    <string name="test_string">TEST</string>
+</resources>
