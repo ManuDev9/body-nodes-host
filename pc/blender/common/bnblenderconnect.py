@@ -36,10 +36,13 @@ import time
 
 if "bnwifibodynodeshost" in sys.modules:
     del sys.modules["bnwifibodynodeshost"]
+if "bnblebodynodeshost" in sys.modules:
+    del sys.modules["bnblebodynodeshost"]
 if "bnblenderutils" in sys.modules:
     del sys.modules["bnblenderutils"]
 
 import bnwifibodynodeshost
+import bnblebodynodeshost
 import bnblenderutils
 
 fullsuit_keys = [
@@ -67,7 +70,7 @@ bodynodes_panel_connect = {
     }
 }
 
-class BlenderBodynodeListener(bnwifibodynodeshost.BodynodeListener):
+class BlenderBodynodeListener(bnblebodynodeshost.BodynodeListener):
     def __init__(self):
         print("This is the Blender listener")
 
@@ -85,7 +88,8 @@ class BlenderBodynodeListener(bnwifibodynodeshost.BodynodeListener):
         return True
 
 blenderbnlistener = BlenderBodynodeListener()
-bnhost = bnwifibodynodeshost.BnWifiHostCommunicator()
+#bnhost = bnwifibodynodeshost.BnWifiHostCommunicator()
+bnhost = bnblebodynodeshost.BnBLEHostCommunicator()
 
 def start_server():
     # print("start_server")
@@ -94,7 +98,8 @@ def start_server():
         return
 
     bnblenderutils.reinit_bn_data()
-    bnhost.start(["BN"])
+    #bnhost.start(["BN"])
+    bnhost.start(["Bodynode"])
     bnhost.addListener(blenderbnlistener)
 
     bodynodes_panel_connect["server"]["status"] = "Server running"

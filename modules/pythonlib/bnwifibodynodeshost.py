@@ -28,6 +28,10 @@ import threading
 import json
 import time
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../body-nodes-common/python/")
+
+import bnconstants
+
 bodynodes_server = {
     "port" : 12345,
     "buffer_size" : 1024,
@@ -170,8 +174,8 @@ class BnWifiHostCommunicator:
 
     # Returns the message associated to the requested player+bodypart+sensortype combination
     def getMessageValue(self, player, bodypart, sensortype):
-        if player+"_"+bodypart+"_"+sensortype in self.whc_messagesMap:
-            return self.whc_messagesMap[player+"_"+bodypart+"_"+sensortype]
+        if player+"|"+bodypart+"|"+sensortype in self.whc_messagesMap:
+            return self.whc_messagesMap[player+"|"+bodypart+"|"+sensortype]
         return None
 
     # Adds an action to the list of actions to be sent
@@ -181,7 +185,7 @@ class BnWifiHostCommunicator:
     # Sends all actions in the list
     def sendAllActions(self):
         for action in self.whc_actionsToSend:
-            player_bodypart = action["player"] + "_" + action["bodypart"]
+            player_bodypart = action[bnconstants.ACTION_PLAYER_TAG] + "|" + action[bnconstants.ACTION_BODYPART_TAG]
             if player_bodypart not in self.whc_connectionsMap or self.whc_connectionsMap[player_bodypart] == None:
                 print("Player+Bodypart connection not existing\n")
                 continue
@@ -324,18 +328,18 @@ class BnWifiHostCommunicator:
     # Puts the json messages in the messages map and associated them with the connection
     def __parseMessages(self, ip_address, jsonMessages):
         for message in jsonMessages:	
-            if ("player" not in message) or ("bodypart" not in message) or ("sensortype" not in message) or ("value" not in message):
+            if (bnconstants.MESSAGE_PLAYER_TAG not in message) or (bnconstants.MESSAGE_BODYPART_TAG not in message) or (bnconstants.MESSAGE_SENSORTYPE_TAG not in message) or (bnconstants.MESSAGE_VALUE_TAG not in message):
                 printf("Json message received is incomplete\n");
                 continue
-            player = message["player"]
-            bodypart = message["bodypart"]
-            sensortype = message["sensortype"]
-            self.whc_connectionsMap[player+"_"+bodypart] = ip_address
-            self.whc_messagesMap[player+"_"+bodypart+"_"+sensortype] = message["value"]
+            player = message[bnconstants.MESSAGE_PLAYER_TAG]
+            bodypart = message[bnconstants.MESSAGE_BODYPART_TAG]
+            sensortype = message[bnconstants.MESSAGE_SENSORTYPE_TAG]
+            self.whc_connectionsMap[player+"|"+bodypart] = ip_address
+            self.whc_messagesMap[player+"|"+bodypart+"|"+sensortype] = message[bnconstants.MESSAGE_SENSORTYPE_TAG]
         
             for listener in self.whc_bodynodesListeners:
                 if listener.isOfInterest(player, bodypart, sensortype ):
-                    listener.onMessageReceived(player, bodypart, sensortype, message["value"])
+                    listener.onMessageReceived(player, bodypart, sensortype, message[bnconstants.MESSAGE_VALUE_TAG])
 
 
 if __name__=="__main__":
@@ -346,7 +350,7 @@ if __name__=="__main__":
     while command != "e":
         command = input("Type a command [r/l/u to read message, h/p/b/s/w to send action, e to exit]: ")
         if command == "r":
-            outvalue = communicator.getMessageValue("mario", "katana", "orientation_abs")
+            outvalue = communicator.getMessageValue("mario", bnconstants.BODYPART_KATANA_TAG, bnconstants.SENSORTYPE_ORIENTATION_ABS_TAG )
             print(outvalue)
 
         elif command == 'l':
@@ -357,49 +361,49 @@ if __name__=="__main__":
             
         elif command == 'h':
             action = {
-                "type" : "haptic",
-                "player" : "mario",
-                "bodypart" : "katana",
-                "duration_ms" : 250,
-                "strength" : 200
+                bnconstants.ACTION_TYPE_TAG : bnconstants.ACTION_TYPE_HAPTIC_TAG,
+                bnconstants.ACTION_PLAYER_TAG : "mario",
+                bnconstants.ACTION_BODYPART_TAG : bnconstants.BODYPART_KATANA_TAG,
+                bnconstants.ACTION_HAPTIC_DURATION_MS_TAG : 250,
+                bnconstants.ACTION_HAPTIC_STRENGTH_TAG : 200
             }
             communicator.addAction(action)
 
         elif command == 'p':
             action = {
-                "type" : "set_player",
-                "player" : "mario",
-                "bodypart" : "katana",
-                "new_player" : "luigi"
+                bnconstants.ACTION_TYPE_TAG : bnconstants.ACTION_TYPE_SETPLAYER_TAG,
+                bnconstants.ACTION_PLAYER_TAG : "mario",
+                bnconstants.ACTION_BODYPART_TAG : bnconstants.BODYPART_KATANA_TAG,
+                bnconstants.ACTION_SETPLAYER_NEWPLAYER_TAG : "luigi"
             }
             communicator.addAction(action)
 
         elif command == 'b':
             action = {
-                "type" : "set_bodypart",
-                "player" : "mario",
-                "bodypart" : "katana",
-                "new_bodypart" : "upperarm_left"
+                bnconstants.ACTION_TYPE_TAG : bnconstants.ACTION_TYPE_SETBODYPART_TAG,
+                bnconstants.ACTION_PLAYER_TAG : "mario",
+                bnconstants.ACTION_BODYPART_TAG : bnconstants.BODYPART_KATANA_TAG,
+                bnconstants.ACTION_SETBODYPART_NEWBODYPART_TAG : bnconstants.BODYPART_UPPERARM_LEFT_TAG
             }
             communicator.addAction(action)
 
         elif command == 's':
             action = {
-                "type" : "enable_sensor",
-                "player" : "mario",
-                "bodypart" : "katana",
-                "sensortype" : "orientation_abs",
-                "enable" : False
+                bnconstants.ACTION_TYPE_TAG : bnconstants.ACTION_TYPE_ENABLESENSOR_TAG,
+                bnconstants.ACTION_PLAYER_TAG : "mario",
+                bnconstants.ACTION_BODYPART_TAG : bnconstants.BODYPART_KATANA_TAG,
+                bnconstants.ACTION_ENABLESENSOR_SENSORTYPE_TAG : bnconstants.SENSORTYPE_ORIENTATION_ABS_TAG,
+                bnconstants.ACTION_ENABLESENSOR_ENABLE_TAG : False
             }
             communicator.addAction(action)
 
         elif command == 'w':
             action = {
-                "type" : "set_wifi",
-                "player" : "mario",
-                "bodypart" : "katana",
-                "ssid" : "upperbody",
-                "password" : "bodynodes1"
+                bnconstants.ACTION_TYPE_TAG : bnconstants.ACTION_TYPE_SETWIFI_TAG,
+                bnconstants.ACTION_PLAYER_TAG : "mario",
+                bnconstants.ACTION_BODYPART_TAG : bnconstants.BODYPART_KATANA_TAG,
+                bnconstants.MEMORY_WIFI_SSID_TAG : "upperbody",
+                bnconstants.MEMORY_WIFI_PASSWORD_TAG : "bodynodes1"
             }
             
             communicator.addAction(action)

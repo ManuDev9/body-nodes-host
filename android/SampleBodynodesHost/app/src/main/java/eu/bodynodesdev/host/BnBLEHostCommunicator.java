@@ -54,6 +54,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BiFunction;
 
 @SuppressLint("MissingPermission")
 public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommunicator {
@@ -68,8 +69,8 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
     private BluetoothLeScanner mBluetoothLeScanner;
     private List<String> mDiscoveredDevices = new ArrayList<>();
 
-    private HashMap<BluetoothGatt, Pair<String, String>> mBLEGatts_PlayerBodypart = new HashMap<>();
-    private HashMap<String, BluetoothGatt> mPlayerBodypart_BLEGatts = new HashMap<>();
+    private HashMap<BluetoothGatt, Pair<String, String>> mBLEGatts_PlayerBodypartMap = new HashMap<>();
+    private HashMap<String, BluetoothGatt> mPlayerBodypart_BLEGattsMap = new HashMap<>();
     //private HashMap<String, BluetoothGattCharacteristic> mHapticActionCharacteristicsBN = new HashMap<>();
 
     private HashMap<String, String> mMessagesMap = new HashMap();
@@ -110,19 +111,19 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
         Log.d(TAG, "Stop BLE scan ");
         //mHapticActionCharacteristicsBN.clear();
         mCharacteristicsToRead.clear();
-        for (String playerBodypartKey : mPlayerBodypart_BLEGatts.keySet()) {
-            BluetoothGatt bleGatt = mPlayerBodypart_BLEGatts.get(playerBodypartKey);
+        for (String playerBodypartKey : mPlayerBodypart_BLEGattsMap.keySet()) {
+            BluetoothGatt bleGatt = mPlayerBodypart_BLEGattsMap.get(playerBodypartKey);
 
             if (bleGatt != null) {
                 bleGatt.disconnect();
                 bleGatt.close();
             }
         }
-        mPlayerBodypart_BLEGatts.clear();
+        mPlayerBodypart_BLEGattsMap.clear();
     }
 
     public String getMessage(String player, String bodypart, String sensortype) {
-        String playerBodypartSensortypeKey = player +"_"+ bodypart +"_"+ sensortype;
+        String playerBodypartSensortypeKey = player +"|"+ bodypart +"|"+ sensortype;
         if (mMessagesMap.containsKey(playerBodypartSensortypeKey)) {
             Log.d(TAG, "Reading from playerBodypartSensortypeKey = " + playerBodypartSensortypeKey);
             String message = mMessagesMap.get(playerBodypartSensortypeKey);
@@ -140,11 +141,11 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
             String key = entry.getKey();
             String valueStr = entry.getValue();
             Log.d(TAG, "Reading from playerBodypartSensortypeKey = " + key);
-            String[] parts = key.split("_");
+            String[] parts = key.split("\\|");
             try {
                 jsonObject.put( BnConstants.MESSAGE_PLAYER_TAG, parts[0] );
                 jsonObject.put( BnConstants.MESSAGE_BODYPART_TAG, parts[1] );
-                jsonObject.put( BnConstants.MESSAGE_SENSOR_TYPE_TAG, parts[2] );
+                jsonObject.put( BnConstants.MESSAGE_SENSORTYPE_TAG, parts[2] );
                 jsonObject.put( BnConstants.MESSAGE_VALUE_TAG, valueStr );
                 jsonArray.put(jsonObject);
             } catch (JSONException e) {
@@ -235,10 +236,16 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
             Log.d(TAG, "onCharacteristicRead something has been read from this UUID = " + characteristic.getUuid().toString());
             // Subscribe to the notifications of the characteristic
 
-            gatt.setCharacteristicNotification(characteristic, true);
-            for (BluetoothGattDescriptor descriptor : characteristic.getDescriptors()) {
-                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                gatt.writeDescriptor(descriptor);
+            if (BnConstants.BLE_BODYNODES_CHARA_ORIENTATION_ABS_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
+                    BnConstants.BLE_BODYNODES_CHARA_ACCELERATION_REL_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
+                    BnConstants.BLE_BODYNODES_CHARA_GLOVE_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
+                    BnConstants.BLE_BODYNODES_CHARA_SHOE_UUID.equalsIgnoreCase(characteristic.getUuid().toString())) {
+
+                gatt.setCharacteristicNotification(characteristic, true);
+                for (BluetoothGattDescriptor descriptor : characteristic.getDescriptors()) {
+                    descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                    gatt.writeDescriptor(descriptor);
+                }
             }
 
             String player = null;
@@ -251,25 +258,35 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
                 bodypart = characteristic.getStringValue(0);
             }
 
-            if(!mBLEGatts_PlayerBodypart.containsKey(gatt) ){
-                mBLEGatts_PlayerBodypart.put(gatt, new Pair<>("",""));
+            if(!mBLEGatts_PlayerBodypartMap.containsKey(gatt) ){
+                mBLEGatts_PlayerBodypartMap.put(gatt, new Pair<>("",""));
             }
 
             if( bodypart != null ){
-                String finalBodypart = bodypart;
-                mBLEGatts_PlayerBodypart.computeIfPresent(gatt, (k, oldPair) -> new Pair<>(oldPair.first, finalBodypart));
+                final String finalBodypart = bodypart;
+                mBLEGatts_PlayerBodypartMap.computeIfPresent(gatt, new BiFunction<BluetoothGatt, Pair<String, String>, Pair<String, String>>() {
+                    @Override
+                    public Pair<String, String> apply(BluetoothGatt k, Pair<String, String> oldPair) {
+                        return new Pair<>(oldPair.first, finalBodypart);
+                    }
+                });
             }
             if( player != null ){
-                String finalPlayer = player;
-                mBLEGatts_PlayerBodypart.computeIfPresent(gatt, (k, oldPair) -> new Pair<>(finalPlayer, oldPair.second));
+                final String finalPlayer = player;
+                mBLEGatts_PlayerBodypartMap.computeIfPresent(gatt, new BiFunction<BluetoothGatt, Pair<String, String>, Pair<String, String>>() {
+                    @Override
+                    public Pair<String, String> apply(BluetoothGatt k, Pair<String, String> oldPair) {
+                        return new Pair<>(finalPlayer, oldPair.second);
+                    }
+                });
             }
 
-            player = Objects.requireNonNull(mBLEGatts_PlayerBodypart.get(gatt)).first;
-            bodypart = Objects.requireNonNull(mBLEGatts_PlayerBodypart.get(gatt)).second;
+            player = Objects.requireNonNull(mBLEGatts_PlayerBodypartMap.get(gatt)).first;
+            bodypart = Objects.requireNonNull(mBLEGatts_PlayerBodypartMap.get(gatt)).second;
             if( !player.isEmpty() && !bodypart.isEmpty() ) {
-                String playerBodypartKey = player +"_"+ bodypart;
-                if( !mPlayerBodypart_BLEGatts.containsKey(playerBodypartKey) ) {
-                    mPlayerBodypart_BLEGatts.put(playerBodypartKey, gatt);
+                String playerBodypartKey = player +"|"+ bodypart;
+                if( !mPlayerBodypart_BLEGattsMap.containsKey(playerBodypartKey) ) {
+                    mPlayerBodypart_BLEGattsMap.put(playerBodypartKey, gatt);
                 }
             }
 
@@ -292,10 +309,14 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
                 JSONObject jsonMessage = BnUtils.createJsonMessageFromBLEChara(characteristic.getUuid().toString(), value);
                 Log.d(TAG, "Json created = " + jsonMessage.toString());
 
-                String player = Objects.requireNonNull(mBLEGatts_PlayerBodypart.get(gatt)).first;
-                String bodypart = Objects.requireNonNull(mBLEGatts_PlayerBodypart.get(gatt)).second;
-                if( player.isEmpty() ||bodypart.isEmpty() ) {
-                    Log.d(TAG, "Gatt device is missing something player = "+player+ " or bodypart ="+bodypart);
+                String player = Objects.requireNonNull(mBLEGatts_PlayerBodypartMap.get(gatt)).first;
+                String bodypart = Objects.requireNonNull(mBLEGatts_PlayerBodypartMap.get(gatt)).second;
+                if( player.isEmpty()) {
+                    Log.d(TAG, "Gatt device is missing  player = "+player);
+                    return;
+                }
+                if (bodypart.isEmpty() ) {
+                    Log.d(TAG, "Gatt device is missing bodypart ="+bodypart);
                     return;
                 }
 
@@ -303,14 +324,14 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
                 String valuesStr = null;
 
                 try {
-                    sensortype = jsonMessage.getString(BnConstants.MESSAGE_SENSOR_TYPE_TAG);
+                    sensortype = jsonMessage.getString(BnConstants.MESSAGE_SENSORTYPE_TAG);
                     valuesStr = jsonMessage.getString(BnConstants.MESSAGE_VALUE_TAG);
                 } catch (JSONException e) {
                     Log.d(TAG, "Cannot parse the jsonMessage");
                     return;
                 }
                 //Log.d(TAG, "Change in playerBodypartSensortypeKey = " + playerBodypartSensortypeKey + " for UUID = " + characteristic.getUuid().toString());
-                String playerBodypartSensortypeKey = player +"_"+ bodypart+"_"+sensortype;
+                String playerBodypartSensortypeKey = player +"|"+ bodypart+"|"+sensortype;
                 //Log.d(TAG, "Change message player = " + message.getPlayer() + " bodypart = " + message.getBodypart() + " sensortype = " + message.getData().getType());
 
                 mMessagesMap.put(playerBodypartSensortypeKey, valuesStr );

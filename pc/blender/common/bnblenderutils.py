@@ -185,3 +185,16 @@ def apply_bodynodes_to_player(player_selected, bodynodes_armature_config ):
 		if "Copy Rotation" not in bpy.data.objects[player_selected].pose.bones[bodypart].constraints:
 			bpy.data.objects[player_selected].pose.bones[bodypart].constraints.new(type = 'COPY_ROTATION')
 			bpy.data.objects[player_selected].pose.bones[bodypart].constraints["Copy Rotation"].target = bodynodeobj_ori
+            
+            
+            
+def create_quanternion(axis_config, values):
+            
+	quat = mathutils.Quaternion((
+		axis_config["new_w_sign"] * float(values[axis_config["new_w_val"]]),
+		axis_config["new_x_sign"] * float(values[axis_config["new_x_val"]]),
+		axis_config["new_y_sign"] * float(values[axis_config["new_y_val"]]),
+		axis_config["new_z_sign"] * float(values[axis_config["new_z_val"]])
+	))
+	#print("bodypart = "+str(bodypart)+" - quat = "+str(quat))
+	return quat

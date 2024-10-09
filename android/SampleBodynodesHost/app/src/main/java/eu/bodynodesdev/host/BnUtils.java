@@ -32,7 +32,7 @@ public class BnUtils {
                 values_float[1] = convertBytesToFloat(valuesBytes, 4);
                 values_float[2] = convertBytesToFloat(valuesBytes, 8);
                 values_float[3] = convertBytesToFloat(valuesBytes, 12);
-                jsonMessage.put(BnConstants.MESSAGE_SENSOR_TYPE_TAG, BnConstants.SENSORTYPE_ORIENTATION_ABS_TAG);
+                jsonMessage.put(BnConstants.MESSAGE_SENSORTYPE_TAG, BnConstants.SENSORTYPE_ORIENTATION_ABS_TAG);
                 JSONArray jsonArray = new JSONArray();
                 for (float value : values_float) {
                     jsonArray.put(value);
@@ -43,7 +43,7 @@ public class BnUtils {
                 values_float[0] = convertBytesToFloat(valuesBytes, 0);
                 values_float[1] = convertBytesToFloat(valuesBytes, 4);
                 values_float[2] = convertBytesToFloat(valuesBytes, 8);
-                jsonMessage.put(BnConstants.MESSAGE_SENSOR_TYPE_TAG, BnConstants.SENSORTYPE_ACCELERATION_REL_TAG);
+                jsonMessage.put(BnConstants.MESSAGE_SENSORTYPE_TAG, BnConstants.SENSORTYPE_ACCELERATION_REL_TAG);
                 JSONArray jsonArray = new JSONArray();
                 for (float value : values_float) {
                     jsonArray.put(value);
@@ -61,14 +61,14 @@ public class BnUtils {
                 values_int[6] = (tmp >> 2) & 0x1;
                 values_int[7] = (tmp >> 1) & 0x1;
                 values_int[8] = (tmp) & 0x1;
-                jsonMessage.put(BnConstants.MESSAGE_SENSOR_TYPE_TAG, BnConstants.SENSORTYPE_GLOVE_TAG);
+                jsonMessage.put(BnConstants.MESSAGE_SENSORTYPE_TAG, BnConstants.SENSORTYPE_GLOVE_TAG);
                 JSONArray jsonArray = new JSONArray();
                 for (int value : values_int) {
                     jsonArray.put(value);
                 }
                 jsonMessage.put(BnConstants.MESSAGE_VALUE_TAG, jsonArray);
             } else if(BnConstants.BLE_BODYNODES_CHARA_SHOE_UUID.equalsIgnoreCase(charaUUID)){
-                jsonMessage.put(BnConstants.MESSAGE_SENSOR_TYPE_TAG, BnConstants.SENSORTYPE_GLOVE_TAG);
+                jsonMessage.put(BnConstants.MESSAGE_SENSORTYPE_TAG, BnConstants.SENSORTYPE_SHOE_TAG);
                 JSONArray jsonArray = new JSONArray();
                 jsonArray.put(valuesBytes[0]);
                 jsonMessage.put(BnConstants.MESSAGE_VALUE_TAG,jsonArray );

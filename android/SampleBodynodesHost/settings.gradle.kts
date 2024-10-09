@@ -19,5 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AndroidBodynodesHost"
+rootProject.name = "SampleBodynodesHost"
 include(":app")
+include(":UnityConnector")
