@@ -101,7 +101,8 @@ class BnBLEHostCommunicator:
         print("BnBLEHostCommunicator - Stopping")
 
         self.blec_toStop = True
-        self.blec_dataConnectionThread.join()
+        if self.blec_dataConnectionThread.is_alive():
+            self.blec_dataConnectionThread.join()
 
         self.blec_BLEAddress_PlayerBodypartMap = {}
         self.blec_PlayerBodypart_BLEdevicesMap = {}
@@ -124,7 +125,13 @@ class BnBLEHostCommunicator:
 
         print("")
         print("Discovering devices")
-        devices = await BleakScanner.discover()
+        try:
+            devices = await BleakScanner.discover()
+        except OSError:
+            print("")
+            print("It was not possible to discover BLE devices, make sure you have the Bluetooth ON in your PC/Laptop")
+            self.blec_toStop = True
+            return
         
         list_subscribe = []
 
@@ -153,7 +160,9 @@ class BnBLEHostCommunicator:
                             if( characteristic.uuid.lower() == bnconstants.BLE_BODYNODES_CHARA_ORIENTATION_ABS_VALUE_UUID.lower() or
                                     characteristic.uuid.lower() == bnconstants.BLE_BODYNODES_CHARA_ACCELERATION_REL_VALUE_UUID.lower() or
                                     characteristic.uuid.lower() == bnconstants.BLE_BODYNODES_CHARA_GLOVE_VALUE_UUID.lower() or
-                                    characteristic.uuid.lower() == bnconstants.BLE_BODYNODES_CHARA_SHOE_UUID.lower() ):
+                                    characteristic.uuid.lower() == bnconstants.BLE_BODYNODES_CHARA_SHOE_UUID.lower() or
+                                    characteristic.uuid.lower() == bnconstants.BLE_BODYNODES_CHARA_ANGULARVELOCITY_REL_VALUE_UUID.lower()
+                                    ):
 
                                 print("Subscribing to chara")
                                 list_subscribe.append({ "client": client , "characteristic_uuid" : characteristic.uuid })
@@ -163,8 +172,9 @@ class BnBLEHostCommunicator:
 
         for plbo in self.blec_PlayerBodypart_BLEdevicesMap.keys():
             client = self.blec_PlayerBodypart_BLEdevicesMap[plbo]
-            print("Disconnecting from " + client.address)
-            await client.disconnect()
+            if client.is_connected:
+                print("Disconnecting from " + client.address)
+                await client.disconnect()
         
         print("Closing the data connection thread")
             
@@ -210,9 +220,10 @@ class BnBLEHostCommunicator:
 
         while not self.blec_toStop:
             await asyncio.sleep(0.005)
-        
-        print( "Closing this subscription " +client.address + " "+ uuid )
-        await client.stop_notify(uuid)
+
+        if client.is_connected:
+            print( "Closing this subscription " +client.address + " "+ uuid )
+            await client.stop_notify(uuid)
 
     async def __ble_subscribe_all(self, list_subscribe):
         tasks = []
@@ -247,10 +258,10 @@ class BnBLEHostCommunicator:
         bodypart = None
         
         if uuid == bnconstants.BLE_BODYNODES_CHARA_PLAYER_UUID.lower() :
-            player = value.decode('utf-8')
+            player = value.decode("utf-8")
 
         if uuid == bnconstants.BLE_BODYNODES_CHARA_BODYPART_UUID.lower() :
-            bodypart = value.decode('utf-8')
+            bodypart = value.decode("utf-8")
 
         if client.address not in self.blec_BLEAddress_PlayerBodypartMap:
             self.blec_BLEAddress_PlayerBodypartMap[client.address] = { "player": "", "bodypart" : "" }
@@ -269,46 +280,58 @@ class BnBLEHostCommunicator:
 
     def __createJsonMessageFromBLEChara(self, characteristic_uuid, value):
         jsonMessage = {}
-        if characteristic_uuid == bnconstants.BLE_BODYNODES_CHARA_ORIENTATION_ABS_VALUE_UUID.lower():
-            jsonMessage[bnconstants.MESSAGE_SENSORTYPE_TAG] = bnconstants.SENSORTYPE_ORIENTATION_ABS_TAG
-            # '>f' means big-endian float
-            jsonMessage[bnconstants.MESSAGE_VALUE_TAG] = [
-                struct.unpack('>f', value[0:4])[0],
-                struct.unpack('>f', value[4:8])[0],
-                struct.unpack('>f', value[8:12])[0],
-                struct.unpack('>f', value[12:16])[0]
-            ]
-
-        elif characteristic_uuid == bnconstants.BLE_BODYNODES_CHARA_ACCELERATION_REL_VALUE_UUID.lower():
-            jsonMessage[bnconstants.MESSAGE_SENSORTYPE_TAG] = bnconstants.SENSORTYPE_ACCELERATION_REL_TAG
-            # '>f' means big-endian float
-            jsonMessage[bnconstants.MESSAGE_VALUE_TAG] = [
-                struct.unpack('>f', value[0:4])[0],
-                struct.unpack('>f', value[4:8])[0],
-                struct.unpack('>f', value[8:12])[0]
-            ]
-
-        elif characteristic_uuid == bnconstants.BLE_BODYNODES_CHARA_GLOVE_VALUE_UUID.lower():
-            jsonMessage[bnconstants.MESSAGE_SENSORTYPE_TAG] = bnconstants.SENSORTYPE_GLOVE_TAG
-            jsonMessage[bnconstants.MESSAGE_VALUE_TAG] = [
-                int.from_bytes(value[0]),
-                int.from_bytes(value[1]),
-                int.from_bytes(value[2]),
-                int.from_bytes(value[3]),
-                int.from_bytes(value[4]),
-
-                int.from_bytes(value[5]),
-                int.from_bytes(value[6]),
-                int.from_bytes(value[7]),
-                int.from_bytes(value[8])
-
-            ]
-        elif characteristic_uuid == bnconstants.BLE_BODYNODES_CHARA_SHOE_UUID.lower():
-            jsonMessage[bnconstants.MESSAGE_SENSORTYPE_TAG] = bnconstants.SENSORTYPE_SHOE_TAG
-            jsonMessage[bnconstants.MESSAGE_VALUE_TAG] = [
-                int.from_bytes(value[0])
-            ]
+        try:
         
+            if characteristic_uuid == bnconstants.BLE_BODYNODES_CHARA_ORIENTATION_ABS_VALUE_UUID.lower():
+                jsonMessage[bnconstants.MESSAGE_SENSORTYPE_TAG] = bnconstants.SENSORTYPE_ORIENTATION_ABS_TAG
+                # '>f' means big-endian float
+                jsonMessage[bnconstants.MESSAGE_VALUE_TAG] = [
+                    struct.unpack('>f', value[0:4])[0],
+                    struct.unpack('>f', value[4:8])[0],
+                    struct.unpack('>f', value[8:12])[0],
+                    struct.unpack('>f', value[12:16])[0]
+                ]
+
+            elif characteristic_uuid == bnconstants.BLE_BODYNODES_CHARA_ACCELERATION_REL_VALUE_UUID.lower():
+                jsonMessage[bnconstants.MESSAGE_SENSORTYPE_TAG] = bnconstants.SENSORTYPE_ACCELERATION_REL_TAG
+                # '>f' means big-endian float
+                jsonMessage[bnconstants.MESSAGE_VALUE_TAG] = [
+                    struct.unpack('>f', value[0:4])[0],
+                    struct.unpack('>f', value[4:8])[0],
+                    struct.unpack('>f', value[8:12])[0]
+                ]
+
+            elif characteristic_uuid == bnconstants.BLE_BODYNODES_CHARA_GLOVE_VALUE_UUID.lower():
+                jsonMessage[bnconstants.MESSAGE_SENSORTYPE_TAG] = bnconstants.SENSORTYPE_GLOVE_TAG
+                jsonMessage[bnconstants.MESSAGE_VALUE_TAG] = [
+                    value[0],
+                    value[1],
+                    value[2],
+                    value[3],
+                    value[4],
+
+                    value[5],
+                    value[6],
+                    value[7],
+                    value[8]
+                ]
+            elif characteristic_uuid == bnconstants.BLE_BODYNODES_CHARA_SHOE_UUID.lower():
+                jsonMessage[bnconstants.MESSAGE_SENSORTYPE_TAG] = bnconstants.SENSORTYPE_SHOE_TAG
+                jsonMessage[bnconstants.MESSAGE_VALUE_TAG] = [
+                    value[0]
+                ]
+            elif characteristic_uuid == bnconstants.BLE_BODYNODES_CHARA_ANGULARVELOCITY_REL_VALUE_UUID.lower():
+                jsonMessage[bnconstants.MESSAGE_SENSORTYPE_TAG] = bnconstants.SENSORTYPE_ANGULARVELOCITY_REL_TAG
+                # '>f' means big-endian float
+                jsonMessage[bnconstants.MESSAGE_VALUE_TAG] = [
+                    struct.unpack('>f', value[0:4])[0],
+                    struct.unpack('>f', value[4:8])[0],
+                    struct.unpack('>f', value[8:12])[0]
+                ]
+        except TypeError as err:
+            print(err)
+            jsonMessage = {}
+
         return jsonMessage
         
 

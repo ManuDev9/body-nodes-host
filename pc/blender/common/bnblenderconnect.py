@@ -26,8 +26,6 @@
 import glob
 import os
 import sys
-from socket import *
-import threading
 import json
 import bpy
 from mathutils import *
