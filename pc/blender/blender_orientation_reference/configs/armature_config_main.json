@@ -1,0 +1,13 @@
+{
+    "katana": {
+        "bone_name": "katana",
+        "new_w_sign": 1,
+        "new_w_val": 0,
+        "new_x_sign": 1,
+        "new_x_val": 1,
+        "new_y_sign": 1,
+        "new_y_val": 2,
+        "new_z_sign": 1,
+        "new_z_val": 3
+    }
+}
