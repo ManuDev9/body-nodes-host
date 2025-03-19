@@ -43,13 +43,21 @@ def mouse_move( angvel_rel ):
     valY = 0
     if abs(angvel_rel[2]) > 1.3 :
         valX = -angvel_rel[2] * 500
+    elif abs(angvel_rel[2]) > 1.0 :
+        valX = -angvel_rel[2] * 300
+    elif abs(angvel_rel[2]) > 0.8 :
+        valX = -angvel_rel[2] * 200
     else:
         valX = -angvel_rel[2] * 100
  
     if abs(angvel_rel[1]) > 1.3 :
-        valY = -angvel_rel[1] * 150
+        valY = -angvel_rel[1] * 500
+    elif abs(angvel_rel[1]) > 1.0 :
+        valY = -angvel_rel[1] * 300
+    elif abs(angvel_rel[1]) > 0.8 :
+        valY = -angvel_rel[1] * 200
     else:
-        valY = -angvel_rel[1] * 80
+        valY = -angvel_rel[1] * 100
 
     pyautogui.moveRel( valX, valY, duration = 0.1 )
 
@@ -57,19 +65,20 @@ is_button_left_down = False
 is_button_right_down = False
 
 def mouse_click( glove_vals ):
+    print(glove_vals)
     global is_button_left_down
     global is_button_right_down
-    if glove_vals[5] == 1:
+    if glove_vals[bnconstants.GLOVE_TOUCH_INDICE_INDEX] == 1:
         pyautogui.mouseDown(button='left')
         is_button_left_down = True
-    elif glove_vals[5] == 0 and is_button_left_down:
+    elif glove_vals[bnconstants.GLOVE_TOUCH_INDICE_INDEX] == 0 and is_button_left_down:
         pyautogui.mouseUp(button='left')
         is_button_left_down = False
 
-    if glove_vals[6] == 1:
+    if glove_vals[bnconstants.GLOVE_TOUCH_MEDIO_INDEX] == 1:
         pyautogui.mouseDown(button='right')
         is_button_right_down = True
-    elif glove_vals[6] == 0 and is_button_right_down:
+    elif glove_vals[bnconstants.GLOVE_TOUCH_MEDIO_INDEX] == 0 and is_button_right_down:
         pyautogui.mouseUp(button='right')
         is_button_right_down = False
 
@@ -79,6 +88,9 @@ class BlenderBodynodeListener(bnblebodynodeshost.BodynodeListener):
         print("This is the Blender listener")
 
     def onMessageReceived(self, player, bodypart, sensortype, value):
+        print(player)
+        print(bodypart)
+        print(sensortype)
         if sensortype == bnconstants.SENSORTYPE_ANGULARVELOCITY_REL_TAG:
             mouse_move(value)
         elif sensortype == bnconstants.SENSORTYPE_GLOVE_TAG:
@@ -96,7 +108,7 @@ bnhost = bnblebodynodeshost.BnBLEHostCommunicator()
 
 
 if __name__ == "__main__" :
-    bnhost.start(["Bodynode"])
+    bnhost.start(["Bodynod0"]) # Just for the MakerFaire
     bnhost.addListener(blenderbnlistener)
 
     try:
