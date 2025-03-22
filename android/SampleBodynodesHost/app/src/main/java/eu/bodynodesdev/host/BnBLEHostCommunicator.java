@@ -1,7 +1,7 @@
 /**
  * MIT License
  *
- * Copyright (c) 2019-2024 Manuel Bottini
+ * Copyright (c) 2019-2025 Manuel Bottini
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -54,6 +54,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.BiFunction;
 
 @SuppressLint("MissingPermission")
@@ -64,7 +65,7 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
 
     private boolean mIsScanning;
 
-    List<Pair<BluetoothGatt, BluetoothGattCharacteristic>> mCharacteristicsToRead = new ArrayList<>();
+    List<Pair<BluetoothGatt, BluetoothGattCharacteristic>> mCharacteristicsToParse = new ArrayList<>();
 
     private BluetoothLeScanner mBluetoothLeScanner;
     private List<String> mDiscoveredDevices = new ArrayList<>();
@@ -78,7 +79,7 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
     private Handler mHandler = new Handler();
     private Handler mReadCharsHandler = new Handler();
 
-    private static final long SCAN_PERIOD = 30000;
+    private static final long SCAN_INTERVAL = 5000;
 
     public BnBLEHostCommunicator(Activity activity) {
         mActivity = activity;
@@ -90,27 +91,18 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
     public void start() {
         ///Let's trigger a scan and stop it after 10 seconds OR device with mac found
         Log.d(TAG, "Start BLE scan ");
-        mIsScanning = true;
-        ScanFilter scanFilter = new ScanFilter.Builder()
-                .setDeviceName("Bodynode") // Replace "DeviceName" with the name of the device you want to connect to
-                .build();
-        ScanSettings scanSettings = new ScanSettings.Builder()
-                .build();
-        List<ScanFilter> filters = new ArrayList<>();
-        //mBluetoothLeScanner.startScan(BnBLEHostCommunicator.this);
-        mBluetoothLeScanner.startScan(filters, scanSettings, BnBLEHostCommunicator.this);
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                stopScan();
-            }
-        }, SCAN_PERIOD);
+
+        mIsScanning = false;
+        startScan();
+
     }
 
     public void stop() {
         Log.d(TAG, "Stop BLE scan ");
         //mHapticActionCharacteristicsBN.clear();
-        mCharacteristicsToRead.clear();
+        mCharacteristicsToParse.clear();
+        stopScan();
+        mHandler.removeCallbacksAndMessages(null);
         for (String playerBodypartKey : mPlayerBodypart_BLEGattsMap.keySet()) {
             BluetoothGatt bleGatt = mPlayerBodypart_BLEGattsMap.get(playerBodypartKey);
 
@@ -125,7 +117,7 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
     public String getMessage(String player, String bodypart, String sensortype) {
         String playerBodypartSensortypeKey = player +"|"+ bodypart +"|"+ sensortype;
         if (mMessagesMap.containsKey(playerBodypartSensortypeKey)) {
-            Log.d(TAG, "Reading from playerBodypartSensortypeKey = " + playerBodypartSensortypeKey);
+            //Log.d(TAG, "Reading from playerBodypartSensortypeKey = " + playerBodypartSensortypeKey);
             String message = mMessagesMap.get(playerBodypartSensortypeKey);
             if (message != null) {
                 return message;
@@ -140,7 +132,7 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
             JSONObject jsonObject = new JSONObject();
             String key = entry.getKey();
             String valueStr = entry.getValue();
-            Log.d(TAG, "Reading from playerBodypartSensortypeKey = " + key);
+            //Log.d(TAG, "Reading from playerBodypartSensortypeKey = " + key);
             String[] parts = key.split("\\|");
             try {
                 jsonObject.put( BnConstants.MESSAGE_PLAYER_TAG, parts[0] );
@@ -209,11 +201,12 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
                             if (BnConstants.BLE_BODYNODES_CHARA_PLAYER_UUID.equalsIgnoreCase( characteristic.getUuid().toString()) ||
                                     BnConstants.BLE_BODYNODES_CHARA_BODYPART_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
                                     BnConstants.BLE_BODYNODES_CHARA_ORIENTATION_ABS_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
+                                    BnConstants.BLE_BODYNODES_CHARA_ANGULARVELOCITY_REL_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
                                     BnConstants.BLE_BODYNODES_CHARA_ACCELERATION_REL_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
                                     BnConstants.BLE_BODYNODES_CHARA_GLOVE_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
                                     BnConstants.BLE_BODYNODES_CHARA_SHOE_UUID.equalsIgnoreCase(characteristic.getUuid().toString())) {
                                 Log.d(TAG, "Adding characteristic to list");
-                                mCharacteristicsToRead.add(new Pair<>(gatt, characteristic));
+                                mCharacteristicsToParse.add(new Pair<>(gatt, characteristic));
                             }
                         }
                     }
@@ -235,27 +228,16 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
 
             Log.d(TAG, "onCharacteristicRead something has been read from this UUID = " + characteristic.getUuid().toString());
             // Subscribe to the notifications of the characteristic
-
-            if (BnConstants.BLE_BODYNODES_CHARA_ORIENTATION_ABS_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
-                    BnConstants.BLE_BODYNODES_CHARA_ACCELERATION_REL_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
-                    BnConstants.BLE_BODYNODES_CHARA_GLOVE_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
-                    BnConstants.BLE_BODYNODES_CHARA_SHOE_UUID.equalsIgnoreCase(characteristic.getUuid().toString())) {
-
-                gatt.setCharacteristicNotification(characteristic, true);
-                for (BluetoothGattDescriptor descriptor : characteristic.getDescriptors()) {
-                    descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                    gatt.writeDescriptor(descriptor);
-                }
-            }
-
             String player = null;
             String bodypart = null;
             if( BnConstants.BLE_BODYNODES_CHARA_PLAYER_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ) {
                 player = characteristic.getStringValue(0);
+                Log.d(TAG, "Player has been read = " + player);
             }
 
             if( BnConstants.BLE_BODYNODES_CHARA_BODYPART_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ) {
                 bodypart = characteristic.getStringValue(0);
+                Log.d(TAG, "Bodypart has been read = " + bodypart);
             }
 
             if(!mBLEGatts_PlayerBodypartMap.containsKey(gatt) ){
@@ -290,7 +272,7 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
                 }
             }
 
-            readNextCharacteristic();
+            parseNextCharacteristic();
         }
 
         @Override
@@ -332,7 +314,7 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
                 }
                 //Log.d(TAG, "Change in playerBodypartSensortypeKey = " + playerBodypartSensortypeKey + " for UUID = " + characteristic.getUuid().toString());
                 String playerBodypartSensortypeKey = player +"|"+ bodypart+"|"+sensortype;
-                //Log.d(TAG, "Change message player = " + message.getPlayer() + " bodypart = " + message.getBodypart() + " sensortype = " + message.getData().getType());
+                Log.d(TAG, "Change message of player "+player+ " bodypart " + bodypart +  " sensortype"+ sensortype + " to value =" + valuesStr );
 
                 mMessagesMap.put(playerBodypartSensortypeKey, valuesStr );
             } else {
@@ -348,33 +330,57 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
                 Log.d(TAG, "onMtuChanged status = "+status +"  mtu = "+mtu);
             }
         }
+
+        @Override
+        public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+            Log.d(TAG, "Descriptor write callback UUID: " + descriptor.getUuid());
+            Log.d(TAG, "Descriptor write status: " + status);
+            parseNextCharacteristic();
+        }
+
     };
 
     private Runnable mReadCharsRunnable = new Runnable() {
         @Override
         public void run() {
-            readNextCharacteristic();
+            parseNextCharacteristic();
         }
     };
 
     private void restartReadNextCharacteristic(){
+        Log.d(TAG, "restartReadNextCharacteristic");
         mReadCharsHandler.removeCallbacks(mReadCharsRunnable);
-        mReadCharsHandler.postDelayed(mReadCharsRunnable, 2000);
+        mReadCharsHandler.postDelayed(mReadCharsRunnable, 1000);
     }
 
-    private void readNextCharacteristic() {
-        if (mCharacteristicsToRead.isEmpty()) {
+    private void parseNextCharacteristic() {
+        if (mCharacteristicsToParse.isEmpty()) {
+            Log.d(TAG, "mCharacteristicsToRead is empty ");
             return;
         }
 
-        BluetoothGattCharacteristic characteristic = mCharacteristicsToRead.get(0).second;
-        BluetoothGatt gatt = mCharacteristicsToRead.get(0).first;
-        mCharacteristicsToRead.remove(0);
-        gatt.setCharacteristicNotification(characteristic, true);
-        Log.d(TAG, "Trying to subscribe next chara = " + characteristic.getUuid().toString());
-        for (BluetoothGattDescriptor descriptor : characteristic.getDescriptors()) {
-            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-            gatt.writeDescriptor(descriptor);
+        BluetoothGattCharacteristic characteristic = mCharacteristicsToParse.get(0).second;
+        BluetoothGatt gatt = mCharacteristicsToParse.get(0).first;
+        mCharacteristicsToParse.remove(0);
+        Log.d(TAG, "Remaining mCharacteristicsToRead = " + mCharacteristicsToParse.size());
+
+        boolean somethingDone = false;
+        if ((characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
+            gatt.setCharacteristicNotification(characteristic, true);
+            Log.d(TAG, "Trying to subscribe next chara = " + characteristic.getUuid().toString());
+            // Find the CCCD descriptor and enable notifications
+            BluetoothGattDescriptor cccdDescriptor = characteristic.getDescriptor(
+                    UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"));
+
+            if (cccdDescriptor != null) {
+                Log.d(TAG, "Found CCCD descriptor. Subscribing to notifications...");
+                cccdDescriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                boolean result = gatt.writeDescriptor(cccdDescriptor);
+                Log.d(TAG, "writeDescriptor result: " + result);
+                somethingDone = true;
+            } else {
+                Log.e(TAG, "CCCD not found on this characteristic");
+            }
         }
         Log.d(TAG, "Reading next chara = " + characteristic.getUuid().toString());
         boolean isReadable = ((characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_READ) != 0);
@@ -382,6 +388,31 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
         if ((characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
             // Characteristic supports reading, you can proceed with read operation
             gatt.readCharacteristic(characteristic);
+            somethingDone = true;
+
+        }
+
+        if(! somethingDone){
+            // It is not possible to trigger the onRead, so let' just parse the next chara here
+            parseNextCharacteristic();
+        }
+    }
+
+    private void startScan() {
+        Log.d(TAG, "startScan mIsScanning = " + mIsScanning);
+        if (!mIsScanning) {
+            mIsScanning = true;
+            ScanSettings scanSettings = new ScanSettings.Builder()
+                    .build();
+            List<ScanFilter> filters = new ArrayList<>();
+            //mBluetoothLeScanner.startScan(BnBLEHostCommunicator.this);
+            mBluetoothLeScanner.startScan(filters, scanSettings, BnBLEHostCommunicator.this);
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    stopScan();
+                }
+            }, SCAN_INTERVAL);
         }
     }
 
@@ -390,6 +421,13 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
         if (mIsScanning) {
             mIsScanning = false;
             mBluetoothLeScanner.stopScan(BnBLEHostCommunicator.this);
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    startScan();
+                }
+            }, SCAN_INTERVAL);
+
         }
     }
 

@@ -33,6 +33,8 @@ android {
 
 dependencies {
     implementation 'com.google.android.material:material:1.12.0'
+    implementation project(':app')
+    implementation project(':app')
     compileOnly files('libs/classes.jar')
     implementation 'androidx.appcompat:appcompat:1.6.1'
     testImplementation 'junit:junit:4.13.2'
