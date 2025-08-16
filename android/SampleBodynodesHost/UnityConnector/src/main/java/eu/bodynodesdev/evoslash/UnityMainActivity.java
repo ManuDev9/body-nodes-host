@@ -25,19 +25,24 @@
 package eu.bodynodesdev.evoslash;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.SurfaceView;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+
 import eu.bodynodesdev.host.BnBLEHostCommunicator;
 
+// https://docs.unity3d.com/6000.0/Documentation/Manual/AndroidUnityPlayerActivity.html
 
-public class UnityMainActivity extends UnityPlayerActivity {
+public class UnityMainActivity extends UnityPlayerActivity  {
 
     private static final int REQUEST_BLE_PERMISSIONS = 1;
 

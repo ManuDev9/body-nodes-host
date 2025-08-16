@@ -41,7 +41,6 @@ import sys
 [os.remove(file) for file in glob.glob(os.path.join(os.path.abspath(__file__ + "/../../../common/__pycache__"), "bnblenderconnect.cpython*.pyc"))]
 [os.remove(file) for file in glob.glob(os.path.join(os.path.abspath(__file__ + "/../../../common/__pycache__"), "bnblenderrecording.cpython*.pyc"))]
 [os.remove(file) for file in glob.glob(os.path.join(os.path.abspath(__file__ + "/../../../common/__pycache__"), "bnblenderaxis.cpython*.pyc"))]
-[os.remove(file) for file in glob.glob(os.path.join(os.path.abspath(__file__ + "/../../../../modules/pythonlib_wifi/__pycache__"), "bnwifibodynodeshost.cpython*.pyc"))]
 
 sys.path.append(os.path.abspath(__file__)+"/../../scripts")
 sys.path.append(os.path.abspath(__file__)+"/../../pyserial")

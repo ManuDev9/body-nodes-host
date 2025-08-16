@@ -1,4 +1,5 @@
 {
+    "_id": "Drone-esp12e",
     "hand_left": {
         "bone_name": "hand_left",
         "new_w_sign": 1,

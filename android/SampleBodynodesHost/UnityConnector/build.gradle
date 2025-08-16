@@ -1,3 +1,11 @@
+
+/*
+From the terminal:
+./gradlew clean
+./gradlew :UnityConnector:tasks --all
+./gradlew :UnityConnector:assembleDebug
+*/
+
 plugins {
     id 'com.android.library'
 }
@@ -20,8 +28,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     sourceSets {

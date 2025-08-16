@@ -3,3 +3,4 @@ __pycache__
 *.o
 *.so
 modules/cpplib_wifi/test
+android/SampleBodynodesHost/.idea/*

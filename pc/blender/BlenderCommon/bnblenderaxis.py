@@ -57,7 +57,7 @@ def load_axis_config_default(fullpath):
     else:
         print("Default config file does not exist: "+conf_file)
 
-def save_axis_config_rec(filepath):
+def save_axis_config(filepath):
     with open(filepath, "w") as file:
         file.write(json.dumps( BodynodesAxis.Config, indent=4, sort_keys=True))
 
@@ -191,13 +191,6 @@ class BodynodesChangeAxisConfigMenu(bpy.types.Operator) :
         BodynodesAxis.Config[bodypart_to_change]["new_y_val"] = new_y_axis
         BodynodesAxis.Config[bodypart_to_change]["new_z_val"] = new_z_axis
         BodynodesAxis.Config[bodypart_to_change]["bone_name"] = new_bone_name
-
-        bodynodes_data["firstOrientationAbs"] = {}
-        bodynodes_data["readOrientationAbs"] = {}
-        bodynodes_data["startingBodypartQuat"] = {}
-
-        bodynodes_data["readGloveAngle"] = {}
-        bodynodes_data["readGloveTouch"] = {}
 
         return {"FINISHED"}
 
