@@ -28,18 +28,20 @@ import bpy
 import time
 import queue
 import math
-from mathutils import *
+import mathutils
 from bpy_extras.io_utils import ExportHelper, ImportHelper
 
 from bnblenderaxis import BodynodesAxis
 
 if "bnblenderutils" in sys.modules:
     del sys.modules["bnblenderutils"]
+if "bncommon" in sys.modules:
+    del sys.modules["bncommon"]
 
 import bnblenderutils
+import bncommon
 
 # This script is required to record bodynodes animations
-players_available = (('None', 'None', ''),)
 player_selected_rec = "None"
 
 bodynodes_saved_armature = {}
@@ -88,20 +90,19 @@ def main_read_orientations():
         return 0.02
 
     for bodypart in bodynodes_data["readOrientationAbs"]:
-
         if bodypart not in BodynodesAxis.Config:
             print("Bodypart = "+bodypart+ " not in armature conf")
             continue
 
-        if get_bone_global_rotation_quaternion(player_selected_rec, bodypart) == None:
+        if bnblenderutils.get_bone_global_rotation_quaternion(player_selected_rec, bodypart) == None:
             print("Bodypart = "+bodypart+ " does not have a bone")
             continue
 
         if bodynodes_data["readOrientationAbs"][bodypart] and bodypart != "katana":
-            player_bodypart = get_bodynodeobj_ori(bodypart)
+            player_bodypart = bnblenderutils.get_bodynodeobj_ori(bodypart)
             if bodypart not in bodynodes_data["firstOrientationAbs"]:
                 first_quat = None
-                bodynodes_data["startingBodypartQuat"][bodypart] = get_bone_global_rotation_quaternion(player_selected_rec, bodypart)
+                bodynodes_data["startingBodypartQuat"][bodypart] = bnblenderutils.get_bone_global_rotation_quaternion(player_selected_rec, bodypart)
             else:
                 first_quat = bodynodes_data["firstOrientationAbs"][bodypart]
 
@@ -111,11 +112,15 @@ def main_read_orientations():
 
             bpy.data.objects[player_selected_rec+"_env"].rotation_mode = 'QUATERNION'
             env_quat = bpy.data.objects[player_selected_rec+"_env"].rotation_quaternion
-        
-            [ object_new_quat , first_quat ] = bnblenderutils.transform_sensor_quat(rawquat, first_quat, starting_quat, env_quat, bodynodes_axis_config)
+
+            if first_quat: # First quat is None the first iteration
+                first_quat = list( first_quat )
+            starting_quat = list( starting_quat )
+            env_quat = list( env_quat )
+            [ object_new_quat , first_quat ] = bncommon.transform_sensor_quat(rawquat, first_quat, starting_quat, env_quat, bodynodes_axis_config)
             bodynodes_data["firstOrientationAbs"][bodypart] = first_quat
-                        
-            player_bodypart.rotation_quaternion = object_new_quat
+
+            player_bodypart.rotation_quaternion = mathutils.Quaternion((object_new_quat))
             if bodynodes_data["recording"]:
                 recordOrientation(player_bodypart, bodypart)
 
@@ -150,6 +155,37 @@ def reinit_bn_data():
     bodynodes_data["readGloveTouch"] = {}
 
 
+# Original functions moved to bncommon
+# def create_quanternion(axis_config, values):
+    
+    # quat = mathutils.Quaternion((
+        # axis_config["new_w_sign"] * float(values[axis_config["new_w_val"]]),
+        # axis_config["new_x_sign"] * float(values[axis_config["new_x_val"]]),
+        # axis_config["new_y_sign"] * float(values[axis_config["new_y_val"]]),
+        # axis_config["new_z_sign"] * float(values[axis_config["new_z_val"]])
+    # ))
+    # return quat
+
+# def transform_sensor_quat( sensor_quat, first_quat, starting_quat, env_quat, bodynodes_axis_config):
+
+    # sensor_quat = mathutils.Quaternion((sensor_quat))
+    # starting_quat = mathutils.Quaternion((starting_quat))
+    # env_quat = mathutils.Quaternion((env_quat))
+
+    # if first_quat == None:
+        # first_quat = sensor_quat.inverted()
+    # else:
+        # first_quat = mathutils.Quaternion(first_quat)
+
+    # rotation_real_quat = first_quat @ sensor_quat
+    # rotation_realaxis_quat = create_quanternion(
+            # bodynodes_axis_config,
+            # rotation_real_quat)
+    
+    # object_new_quat = env_quat @ rotation_realaxis_quat @ env_quat.inverted() @ starting_quat
+    
+    # return [ list(object_new_quat) , list(first_quat) ]
+
 
 def load_armature():
     # print("load armature")
@@ -157,7 +193,7 @@ def load_armature():
     for bodypart in BodynodesAxis.Config.keys():
         if BodynodesAxis.Config[bodypart]["bone_name"] == "":
             continue
-        player_bodypart = get_bodynodeobj_ori(bodypart)
+        player_bodypart = bnblenderutils.get_bodynodeobj_ori(bodypart)
         player_bodypart.rotation_quaternion = bodynodes_saved_armature[bodypart]
 
 def save_armature():
@@ -167,12 +203,12 @@ def save_armature():
     for bodypart in BodynodesAxis.Config.keys():
         if BodynodesAxis.Config[bodypart]["bone_name"] == "":
             continue
-        player_bodypart = get_bodynodeobj_ori(bodypart)
-        bodynodes_saved_armature[bodypart] = Quaternion((player_bodypart.rotation_quaternion))
+        player_bodypart = bnblenderutils.get_bodynodeobj_ori(bodypart)
+        bodynodes_saved_armature[bodypart] = mathutils.Quaternion((player_bodypart.rotation_quaternion))
 
 def reset_armature():
     global player_selected_rec
-    remove_bodynodes_from_player(player_selected_rec)
+    bnblenderutils.remove_bodynodes_from_player(player_selected_rec)
 
     bpy.ops.object.mode_set(mode='OBJECT')
     bpy.ops.object.select_all(action='DESELECT')
@@ -184,19 +220,22 @@ def reset_armature():
     bpy.ops.pose.select_all(action='DESELECT')
     bpy.ops.object.mode_set(mode='OBJECT')
 
-    apply_bodynodes_to_player(player_selected_rec)
-
+    disable_tracking()
+    bnblenderutils.apply_bodynodes_to_player(player_selected_rec, BodynodesAxis.Config)
+    enable_tracking()
 
 def reset_position_1():
     global player_selected_rec
-    remove_bodynodes_from_player(player_selected_rec)
+    bnblenderutils.remove_bodynodes_from_player(player_selected_rec)
     reinit_bn_data()
 
 def reset_position_2(window=True):
     if window:
         time.sleep(5)
     global player_selected_rec
-    apply_bodynodes_to_player(player_selected_rec)
+    disable_tracking()
+    bnblenderutils.apply_bodynodes_to_player(player_selected_rec, BodynodesAxis.Config)
+    enable_tracking()
     if window:
         info_dialog_rec("Position has been reset")
 
@@ -237,7 +276,7 @@ def read_orientations(data_json):
         print(player_selected_rec + " not found, Select a player")
         return
 
-    if not get_bodynodeobj_ori(bodypart):
+    if not bnblenderutils.get_bodynodeobj_ori(bodypart):
         return
 
     bodynodes_data["readOrientationAbs"][bodypart] = [
@@ -293,7 +332,7 @@ def recordOrientation(player_bodypart, bodypart):
     # print("recordOrientation")
     keyframe_info = {}
     keyframe_info["frame_current"] = bpy.context.scene.frame_current
-    keyframe_info["rotation_quaternion"] = Quaternion((player_bodypart.rotation_quaternion))
+    keyframe_info["rotation_quaternion"] = mathutils.Quaternion((player_bodypart.rotation_quaternion))
     player_bodypart.keyframe_insert(data_path='rotation_quaternion', frame=(keyframe_info["frame_current"]))
 
     if bodypart not in bodynodes_takes[bodynodes_data["take"]]:
@@ -307,7 +346,7 @@ def clear_any_recording():
     end = bpy.context.scene.frame_end
     for fc in range(start, end+1):
         for bodypart in bodynodes_data["readOrientationAbs"].keys():
-            player_bodypart = get_bodynodeobj_ori(bodypart)
+            player_bodypart = bnblenderutils.get_bodynodeobj_ori(bodypart)
             try:
                 player_bodypart.keyframe_delete(data_path='rotation_quaternion', frame=(fc))
             except:
@@ -353,7 +392,7 @@ def apply_recording(which):
             continue
         bodypart_keyframes = bodynodes_takes[which][bodypart]
         for keyframe_info in bodypart_keyframes:
-            player_bodypart = get_bodynodeobj_ori(bodypart)
+            player_bodypart = bnblenderutils.get_bodynodeobj_ori(bodypart)
             player_bodypart.rotation_quaternion = keyframe_info["rotation_quaternion"]
             player_bodypart.keyframe_insert(data_path='rotation_quaternion', frame=(keyframe_info["frame_current"]))
 
@@ -368,95 +407,10 @@ def clear_recordings():
     global bodynodes_takes
     bodynodes_takes = [{}, {}, {}]
 
-def find_players():
-    global players_available
-    for bpy_object in bpy.data.objects:
-        if "BNP" in bpy_object.name_full:
-            if "_pos" not in bpy_object.name_full and "_ori" not in bpy_object.name_full and "_env" not in bpy_object.name_full:
-                players_available = players_available + ((bpy_object.name_full+'', bpy_object.name_full+'', ''),)
-
-    bpy.types.Scene.players_list_recording = bpy.props.EnumProperty(items= players_available,
-        name = "Player",
-        description = "Player to consider for recording",
-        update = change_recording_player_fun)
-    if len(players_available) == 2:
-        bpy.context.scene.players_list_recording = players_available[1][0]
-    else:
-        bpy.context.scene.players_list_recording = "None"
-
-def who_got_bodynodes():
-    global players_available
-    for player in players_available:
-        player_name = player[0]
-        if player_name in bpy.data.objects:
-            print(player_name)
-            if "Copy Rotation" in bpy.data.objects[player_name].pose.bones["lowerleg_left"].constraints:
-                return player_name
-    return "None"
-
-def remove_bodynodes_from_player(player_selected_rec):
-    if player_selected_rec not in bpy.data.objects:
-        return
-    for bodypart in bnblenderutils.bodynode_bones_init:
-        if bodypart not in bpy.data.objects[player_selected_rec].pose.bones:
-            print(bodypart + " bone is not in armature")
-            continue
-        if "Copy Rotation" in bpy.data.objects[player_selected_rec].pose.bones[bodypart].constraints:
-            bpy.data.objects[player_selected_rec].pose.bones[bodypart].constraints.remove(
-                bpy.data.objects[player_selected_rec].pose.bones[bodypart].constraints["Copy Rotation"]
-            )
-        if "hand_" in bodypart:
-            for finger in bnblenderutils.bodynode_fingers_init:
-                for index in range(1, 4):
-                    bone_finger = bodypart + "_" + finger + "_" + str(index)
-                    if bone_finger in bpy.data.objects[player_selected_rec].pose.bones:
-                        if "Copy Rotation" in bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints:
-                            bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints.remove(
-                                bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints["Copy Rotation"]
-                            )
-
-def apply_bodynodes_to_player(player_selected_rec):
-    if player_selected_rec not in bpy.data.objects:
-        return
-
-    bodynodes_data["track"] = False
-    for bodypart in BodynodesAxis.Config.keys():
-        if BodynodesAxis.Config[bodypart]["bone_name"] == "":
-            continue
-
-        # We don't need to set the global rotation of the bodynodeobj_glove. Glove angle data is relative
-        if "hand_" in bodypart:
-            for finger in bnblenderutils.bodynode_fingers_init:
-                bodynodeobj_glove_finger = get_bodynodeobj_glove(bodypart, finger)
-                for index in range(1, 4):
-                    bone_finger = bodypart + "_" + finger + "_" + str(index)
-                    if bone_finger in bpy.data.objects[player_selected_rec].pose.bones:
-                        if "Copy Rotation" not in bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints:
-                            bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints.new(type = 'COPY_ROTATION')
-                            bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints["Copy Rotation"].target = bodynodeobj_glove_finger
-                            bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints["Copy Rotation"].owner_space = 'LOCAL'
-                            bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints["Copy Rotation"].use_y = True
-                            bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints["Copy Rotation"].use_y = False
-                            bpy.data.objects[player_selected_rec].pose.bones[bone_finger].constraints["Copy Rotation"].use_z = False
-
-        bodynodeobj_ori = get_bodynodeobj_ori(bodypart)
-        if bodynodeobj_ori == None:
-            print(bodypart + " bodynodeobj_ori does not exist")
-            continue
-
-        if bodypart not in bpy.data.objects[player_selected_rec].pose.bones:
-            print(bodypart + " bone is not in armature")
-            continue
-
-        bodynodeobj_ori.rotation_quaternion = get_bone_global_rotation_quaternion(player_selected_rec, bodypart)
-        if "Copy Rotation" not in bpy.data.objects[player_selected_rec].pose.bones[bodypart].constraints:
-            bpy.data.objects[player_selected_rec].pose.bones[bodypart].constraints.new(type = 'COPY_ROTATION')
-            bpy.data.objects[player_selected_rec].pose.bones[bodypart].constraints["Copy Rotation"].target = bodynodeobj_ori
-
-    bodynodes_data["track"] = True
-
 def enable_tracking():
     bodynodes_data["track"] = True
+def disable_tracking():
+    bodynodes_data["track"] = False
 
 def enabledisable_tracking():
     bodynodes_data["track"] = not bodynodes_data["track"]
@@ -472,7 +426,7 @@ def take_recording_fun(self, context):
 def change_recording_player_fun(self, context):
     global player_selected_rec
 
-    remove_bodynodes_from_player(player_selected_rec)
+    bnblenderutils.remove_bodynodes_from_player(player_selected_rec)
     player_selected_rec = self.players_list_recording
 
     print(player_selected_rec)
@@ -493,7 +447,9 @@ def change_recording_player_fun(self, context):
         bpy.data.objects[player_selected_rec].pose.bones["Hip"].constraints["Copy Rotation"].use_z = True
         bpy.data.objects[player_selected_rec].pose.bones["Hip"].constraints["Copy Rotation"].subtarget = "lowerbody"
 
-    apply_bodynodes_to_player(player_selected_rec)
+    disable_tracking()
+    bnblenderutils.apply_bodynodes_to_player(player_selected_rec, BodynodesAxis.Config)
+    enable_tracking()
 
 
 def save_animation_rec(filepath):
@@ -508,7 +464,7 @@ def save_animation_rec(filepath):
     for bodypart in animation_json.keys():
         for frame in range(start, end+1):
             bpy.context.scene.frame_set(frame)
-            obj_quat = Quaternion((get_bodynode_rotation_quaternion(bodypart)))
+            obj_quat = mathutils.Quaternion((get_bodynode_rotation_quaternion(bodypart)))
             keyframe_info = {
                 "rotation_quaternion" : [ obj_quat.w, obj_quat.x, obj_quat.y, obj_quat.z ],
                 "frame_current" : frame - start
@@ -530,36 +486,6 @@ def redirect_bodypart(bodypart):
     if bodypart in BodynodesAxis.Config.keys() and BodynodesAxis.Config[bodypart]["bone_name"] != "":
         return BodynodesAxis.Config[bodypart]["bone_name"]
     return "none"
-
-def get_bodynodeobj_ori(bodypart):
-    if bodypart+"_ori" not in bpy.data.objects:
-        print(bodypart+" bodynodeobj orientation has not been found")
-        return None
-    return bpy.data.objects[bodypart+"_ori"]
-
-def get_bodynodeobj_glove(bodypart, finger):
-    if bodypart+"_"+finger not in bpy.data.objects:
-        print(bodypart+" bodynodeobj glove has not been found")
-        return None
-    return bpy.data.objects[bodypart+"_"+finger]
-
-def get_bone_global_rotation_quaternion(player_selected, bone):
-    if bone not in bpy.data.objects[player_selected].pose.bones:
-        print(bone+" bone has not been found")
-        return None
-    return (bpy.data.objects[player_selected].matrix_world @ bpy.data.objects[player_selected].pose.bones[bone].matrix).to_quaternion()
-
-def get_bodynode_rotation_quaternion(bodypart):
-    if bodypart not in bpy.data.objects:
-        print(bodypart+" hasn't been found")
-        return None
-    return bpy.data.objects[bodypart].rotation_quaternion
-
-def set_bodynode_rotation_quaternion(bodypart, rotation_quaternion):
-    if bodypart not in bpy.data.objects:
-        print(bodypart+" hasn't been found")
-        return
-    bpy.data.objects[bodypart].rotation_quaternion = rotation_quaternion
 
 bpy.types.Scene.take_recording_list = bpy.props.EnumProperty(items = (
     ('0','Take 1',''),
@@ -772,9 +698,19 @@ class InfoDialogRecOperator(bpy.types.Operator):
         col.label(text=info_dialog_rec_obj["text"])
 
 def register_recording() :
-    find_players()
-    player_selected_rec = who_got_bodynodes()
-    remove_bodynodes_from_player(player_selected_rec)
+    players_available = bnblenderutils.find_players()
+
+    bpy.types.Scene.players_list_recording = bpy.props.EnumProperty(items= players_available,
+        name = "Player",
+        description = "Player to consider for recording",
+        update = change_recording_player_fun)
+    if len(players_available) == 2:
+        bpy.context.scene.players_list_recording = players_available[1][0]
+    else:
+        bpy.context.scene.players_list_recording = "None"
+
+    player_selected_rec = bnblenderutils.who_got_bodynodes(players_available)
+    bnblenderutils.remove_bodynodes_from_player(player_selected_rec)
     bpy.context.scene.players_list_recording = player_selected_rec
     save_armature()
 

@@ -121,11 +121,31 @@ def remove_bodynodes_from_player(player_selected):
                                 bpy.data.objects[player_selected].pose.bones[bone_finger].constraints["Copy Rotation"]
                             )
 
-def apply_bodynodes_to_player(player_selected, bodynodes_armature_config ):
+def find_players():
+    players_available = (('None', 'None', ''),)
+    for bpy_object in bpy.data.objects:
+        if "BNP" in bpy_object.name_full:
+            if "_pos" not in bpy_object.name_full and "_ori" not in bpy_object.name_full and "_env" not in bpy_object.name_full:
+                players_available = players_available + ((bpy_object.name_full+'', bpy_object.name_full+'', ''),)
+
+    return players_available
+
+def who_got_bodynodes(players_available):
+    for player in players_available:
+        player_name = player[0]
+        if player_name in bpy.data.objects:
+            print(player_name)
+            if "Copy Rotation" in bpy.data.objects[player_name].pose.bones["lowerleg_left"].constraints:
+                return player_name
+    return "None"
+
+def apply_bodynodes_to_player(player_selected, bodynodes_armature_config):
+
     if player_selected not in bpy.data.objects:
         return
+
     for bodypart in bodynodes_armature_config.keys():
-        if bodynodes_armature_config[bodypart]["bone_name"] == "":
+        if "__" in bodypart or bodynodes_armature_config[bodypart]["bone_name"] == "":
             continue
 
         # We don't need to set the global rotation of the bodynodeobj_glove. Glove angle data is relative
@@ -156,45 +176,23 @@ def apply_bodynodes_to_player(player_selected, bodynodes_armature_config ):
         if "Copy Rotation" not in bpy.data.objects[player_selected].pose.bones[bodypart].constraints:
             bpy.data.objects[player_selected].pose.bones[bodypart].constraints.new(type = 'COPY_ROTATION')
             bpy.data.objects[player_selected].pose.bones[bodypart].constraints["Copy Rotation"].target = bodynodeobj_ori
- 
-def create_quanternion(axis_config, values):
-        
-    quat = mathutils.Quaternion((
-        axis_config["new_w_sign"] * float(values[axis_config["new_w_val"]]),
-        axis_config["new_x_sign"] * float(values[axis_config["new_x_val"]]),
-        axis_config["new_y_sign"] * float(values[axis_config["new_y_val"]]),
-        axis_config["new_z_sign"] * float(values[axis_config["new_z_val"]])
-    ))
-    #print("bodypart = "+str(bodypart)+" - quat = "+str(quat))
-    return quat
 
-# This trasformation ignores what is the local axis of the object once rotated, we don't trust those axis system which might be compromised
-# rawquat                   - is the raw quaternion (vector of 4 values) from the sensor
-# first_quat                - is the first quaternion that has been registered from the sensor, this will create a 0 angle from where the sensor started sensing
-# starting_quat             - is the starting quaternion of the object we want to rotated with the sensor
-# env_quat                  - is the environment quaternion, basically indicates somehow where the x axis points 
-# bodynodes_axis_config     - axis configuration that will transfor the sensor values into values for the virtual world
-def transform_sensor_quat( rawquat, first_quat, starting_quat, env_quat, bodynodes_axis_config):
 
-    sensor_quat = mathutils.Quaternion((rawquat))
 
-    if first_quat == None:
-        first_quat = sensor_quat.inverted()
+def get_bodynodeobj_glove(bodypart, finger):
+    if bodypart+"_"+finger not in bpy.data.objects:
+        print(bodypart+" bodynodeobj glove has not been found")
+        return None
+    return bpy.data.objects[bodypart+"_"+finger]
 
-    #bpy.data.objects["katana"].rotation_quaternion = sensor_quat @ first_quat @ starting_quat 
-    #bpy.data.objects["katana"].rotation_quaternion = starting_quat @ sensor_quat
-    
-    #bpy.data.objects["katana"].rotation_quaternion = sensor_quat @ first_quat 
-    # Definitely wrong, the object rotates differently depeding where the sensor starts
-    
-    #bpy.data.objects["katana"].rotation_quaternion = sensor_quat
-    # It imposes the current rotation instead of considering the initial rotation of the sensor
+def get_bodynode_rotation_quaternion(bodypart):
+    if bodypart not in bpy.data.objects:
+        print(bodypart+" hasn't been found")
+        return None
+    return bpy.data.objects[bodypart].rotation_quaternion
 
-    rotation_real_quat = first_quat @ sensor_quat
-    rotation_realaxis_quat = create_quanternion(
-            bodynodes_axis_config,
-            rotation_real_quat)
-    
-    object_new_quat = env_quat @ rotation_realaxis_quat @ env_quat.inverted() @ starting_quat
-    
-    return [ object_new_quat , first_quat ]
+def set_bodynode_rotation_quaternion(bodypart, rotation_quaternion):
+    if bodypart not in bpy.data.objects:
+        print(bodypart+" hasn't been found")
+        return
+    bpy.data.objects[bodypart].rotation_quaternion = rotation_quaternion

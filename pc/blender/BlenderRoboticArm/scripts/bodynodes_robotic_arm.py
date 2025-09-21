@@ -46,6 +46,7 @@ sys.path.append(os.path.abspath(__file__)+"/../../scripts")
 sys.path.append(os.path.abspath(__file__)+"/../../pyserial")
 sys.path.append(os.path.abspath(__file__)+"/../../../BlenderCommon")
 sys.path.append(os.path.abspath(__file__)+"/../../../../../modules/pythonlib")
+sys.path.append(os.path.abspath(__file__)+"/../../../../../body-nodes-common/python")
 
 if "serial" in sys.modules:
     del sys.modules["serial"]
@@ -57,6 +58,8 @@ if "bnblenderaxis" in sys.modules:
     del sys.modules["bnblenderaxis"]
 if "bnblenderutils" in sys.modules:
     del sys.modules["bnblenderutils"]
+if "bncommon" in sys.modules:
+    del sys.modules["bncommon"]
 
 import Adeept
 import bnblenderutils

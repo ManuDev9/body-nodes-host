@@ -1,5 +1,5 @@
 {
-    "_id" : "RoboticArm-stm32",
+    "__id" : "RoboticArm-stm32",
     "hand_left": {
         "bone_name": "hand_left",
         "new_w_sign": 1,

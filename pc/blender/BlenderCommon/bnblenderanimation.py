@@ -794,7 +794,6 @@ def repeat_mirror():
 	end = bpy.context.scene.frame_end
 	offset = end-start+1
 
-	# apply_bodynodes_to_player(player_selected_anim):
 	for bodypart in BodynodesAxis.Config.keys():
 		if BodynodesAxis.Config[bodypart]["bone_name"] == "":
 			continue
