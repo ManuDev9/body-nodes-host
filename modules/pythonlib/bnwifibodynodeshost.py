@@ -78,7 +78,7 @@ class BnWifiHostCommunicator:
         self.whc_multicast_connector = None
         # List of actions to send
         self.whc_actionsToSend = None
-        self.whc_bodynodesListeners = None
+        self.whc_bodynodesListeners = []
         self.whc_identifier = None
 
 # Public functions
@@ -93,7 +93,6 @@ class BnWifiHostCommunicator:
         self.whc_connector = None
         self.whc_multicast_connector = None
         self.whc_actionsToSend = []
-        self.whc_bodynodesListeners = []
         self.whc_identifier = None
         
         try:
@@ -335,7 +334,7 @@ class BnWifiHostCommunicator:
             bodypart = message[bnconstants.MESSAGE_BODYPART_TAG]
             sensortype = message[bnconstants.MESSAGE_SENSORTYPE_TAG]
             self.whc_connectionsMap[player+"|"+bodypart] = ip_address
-            self.whc_messagesMap[player+"|"+bodypart+"|"+sensortype] = message[bnconstants.MESSAGE_SENSORTYPE_TAG]
+            self.whc_messagesMap[player+"|"+bodypart+"|"+sensortype] = message[bnconstants.MESSAGE_VALUE_TAG]
         
             for listener in self.whc_bodynodesListeners:
                 if listener.isOfInterest(player, bodypart, sensortype ):
