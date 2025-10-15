@@ -90,7 +90,6 @@ class BnBLEHostCommunicator:
         self.blec_BLEAddress_PlayerBodypartMap = {}
         self.blec_PlayerBodypart_BLEdevicesMap = {}
         self.blec_actionsToSend = []
-        self.blec_bodynodesListeners = []
         self.blec_dataConnectionThread = threading.Thread(target=self.run_data_connection_background)
 
         self.blec_toStop = False
