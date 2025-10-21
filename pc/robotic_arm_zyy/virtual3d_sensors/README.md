@@ -2,7 +2,6 @@ This is a Host-based project to play in a virtual 3d environment with two bodyno
 
 The Host can also be a Raspberry PI
 
-"bnvirtual3d_robotic_arm_zyy"
 It recreates a virtual Robotic Arm ZYY scenerio that we want to control with two bodynodes.
 
 A Robotic Arm ZYY is a 3 Motors Robotic Arm:

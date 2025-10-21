@@ -1,0 +1,4 @@
+PyOpenGL
+PyGame
+pyserial==3.5b0
+pynput
