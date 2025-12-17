@@ -147,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
                     updateMessagesInfo();
 
                     // Schedule the next execution
-                    mHandler.postDelayed(this, BnConstants.SENSOR_READ_INTERVAL_MS); // 1000 ms = 1 second
+                    mHandler.postDelayed(this, 1000); // 1000 ms = 1 second
                 }
             }
         }, 1000); // Start after 1 second

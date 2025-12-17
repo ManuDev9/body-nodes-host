@@ -33,7 +33,7 @@ android {
     }
 
     sourceSets {
-        main.java.srcDirs("../../../body-nodes-common/java")
+        main.java.srcDirs("../../../body-nodes-common/java/src/main")
         main.java.srcDirs("../app/src/main/java")
         main.java.exclude( "**/pages/**" )
     }

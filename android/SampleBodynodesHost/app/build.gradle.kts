@@ -32,7 +32,9 @@ android {
 
     sourceSets {
         named("main") {
-            java.srcDirs("../../../body-nodes-common/java")
+            println("Project Dir is: ${projectDir.absolutePath}")
+            java.srcDirs("${projectDir}/../../../body-nodes-common/java/src/main")
+
         }
     }
 

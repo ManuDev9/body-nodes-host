@@ -48,7 +48,7 @@ public class BnUtils {
         JSONObject jsonMessage = new JSONObject();
 
         try {
-            if (BnConstants.BLE_BODYNODES_CHARA_ORIENTATION_ABS_VALUE_UUID.equalsIgnoreCase(charaUUID)) {
+            if (BnConstants.BLE_CHARA_ORIENTATION_ABS_VALUE_UUID.equalsIgnoreCase(charaUUID)) {
                 float[] values_float = new float[4];
                 values_float[0] = convertBytesToFloat(valuesBytes, 0);
                 values_float[1] = convertBytesToFloat(valuesBytes, 4);
@@ -60,7 +60,7 @@ public class BnUtils {
                     jsonArray.put(value);
                 }
                 jsonMessage.put(BnConstants.MESSAGE_VALUE_TAG, jsonArray);
-            } else if (BnConstants.BLE_BODYNODES_CHARA_ACCELERATION_REL_VALUE_UUID.equalsIgnoreCase(charaUUID)) {
+            } else if (BnConstants.BLE_CHARA_ACCELERATION_REL_VALUE_UUID.equalsIgnoreCase(charaUUID)) {
                 float[] values_float = new float[3];
                 values_float[0] = convertBytesToFloat(valuesBytes, 0);
                 values_float[1] = convertBytesToFloat(valuesBytes, 4);
@@ -71,7 +71,7 @@ public class BnUtils {
                     jsonArray.put(value);
                 }
                 jsonMessage.put(BnConstants.MESSAGE_VALUE_TAG, jsonArray);
-            } else if (BnConstants.BLE_BODYNODES_CHARA_ANGULARVELOCITY_REL_VALUE_UUID.equalsIgnoreCase(charaUUID)) {
+            } else if (BnConstants.BLE_CHARA_ANGULARVELOCITY_REL_VALUE_UUID.equalsIgnoreCase(charaUUID)) {
                 float[] values_float = new float[3];
                 values_float[0] = convertBytesToFloat(valuesBytes, 0);
                 values_float[1] = convertBytesToFloat(valuesBytes, 4);
@@ -82,7 +82,7 @@ public class BnUtils {
                     jsonArray.put(value);
                 }
                 jsonMessage.put(BnConstants.MESSAGE_VALUE_TAG, jsonArray);
-            } else if(BnConstants.BLE_BODYNODES_CHARA_GLOVE_VALUE_UUID.equalsIgnoreCase(charaUUID)){
+            } else if(BnConstants.BLE_CHARA_GLOVE_VALUE_UUID.equalsIgnoreCase(charaUUID)){
                 int[] values_int = new int[9];
                 values_int[0] = valuesBytes[0];
                 values_int[1] = valuesBytes[1];
@@ -99,7 +99,7 @@ public class BnUtils {
                     jsonArray.put(value);
                 }
                 jsonMessage.put(BnConstants.MESSAGE_VALUE_TAG, jsonArray);
-            } else if(BnConstants.BLE_BODYNODES_CHARA_SHOE_UUID.equalsIgnoreCase(charaUUID)){
+            } else if(BnConstants.BLE_CHARA_SHOE_UUID.equalsIgnoreCase(charaUUID)){
                 jsonMessage.put(BnConstants.MESSAGE_SENSORTYPE_TAG, BnConstants.SENSORTYPE_SHOE_TAG);
                 JSONArray jsonArray = new JSONArray();
                 jsonArray.put(valuesBytes[0]);

@@ -194,17 +194,17 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
                 Log.d(TAG, "onServicesDiscovered we discovered something!");
                 for (BluetoothGattService service : gatt.getServices()) {
                     Log.d(TAG, "we discovered service UUID:" + service.getUuid());
-                    if (BnConstants.BLE_BODYNODES_SERVICE_UUID.equalsIgnoreCase( service.getUuid().toString())) {
+                    if (BnConstants.BLE_SERVICE_UUID.equalsIgnoreCase( service.getUuid().toString())) {
                         for (BluetoothGattCharacteristic characteristic : service.getCharacteristics()) {
                             Log.d(TAG, "we discovered characteristic UUID:" + characteristic.getUuid());
 
-                            if (BnConstants.BLE_BODYNODES_CHARA_PLAYER_UUID.equalsIgnoreCase( characteristic.getUuid().toString()) ||
-                                    BnConstants.BLE_BODYNODES_CHARA_BODYPART_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
-                                    BnConstants.BLE_BODYNODES_CHARA_ORIENTATION_ABS_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
-                                    BnConstants.BLE_BODYNODES_CHARA_ANGULARVELOCITY_REL_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
-                                    BnConstants.BLE_BODYNODES_CHARA_ACCELERATION_REL_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
-                                    BnConstants.BLE_BODYNODES_CHARA_GLOVE_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
-                                    BnConstants.BLE_BODYNODES_CHARA_SHOE_UUID.equalsIgnoreCase(characteristic.getUuid().toString())) {
+                            if (BnConstants.BLE_CHARA_PLAYER_UUID.equalsIgnoreCase( characteristic.getUuid().toString()) ||
+                                    BnConstants.BLE_CHARA_BODYPART_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
+                                    BnConstants.BLE_CHARA_ORIENTATION_ABS_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
+                                    BnConstants.BLE_CHARA_ANGULARVELOCITY_REL_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
+                                    BnConstants.BLE_CHARA_ACCELERATION_REL_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
+                                    BnConstants.BLE_CHARA_GLOVE_VALUE_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ||
+                                    BnConstants.BLE_CHARA_SHOE_UUID.equalsIgnoreCase(characteristic.getUuid().toString())) {
                                 Log.d(TAG, "Adding characteristic to list");
                                 mCharacteristicsToParse.add(new Pair<>(gatt, characteristic));
                             }
@@ -230,12 +230,12 @@ public class BnBLEHostCommunicator extends ScanCallback implements BnHostCommuni
             // Subscribe to the notifications of the characteristic
             String player = null;
             String bodypart = null;
-            if( BnConstants.BLE_BODYNODES_CHARA_PLAYER_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ) {
+            if( BnConstants.BLE_CHARA_PLAYER_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ) {
                 player = characteristic.getStringValue(0);
                 Log.d(TAG, "Player has been read = " + player);
             }
 
-            if( BnConstants.BLE_BODYNODES_CHARA_BODYPART_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ) {
+            if( BnConstants.BLE_CHARA_BODYPART_UUID.equalsIgnoreCase(characteristic.getUuid().toString()) ) {
                 bodypart = characteristic.getStringValue(0);
                 Log.d(TAG, "Bodypart has been read = " + bodypart);
             }
