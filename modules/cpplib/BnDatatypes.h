@@ -48,17 +48,17 @@ struct UDPConnector {
 
 class IPConnectionData {
 public:
-  void setDisconnected() { conn_status = CONNECTION_STATUS_NOT_CONNECTED; }
-  void setWaitingACK() { conn_status = CONNECTION_STATUS_WAITING_ACK; }
-  void setConnected() { conn_status = CONNECTION_STATUS_CONNECTED; }
-  bool isDisconnected() { return conn_status == CONNECTION_STATUS_NOT_CONNECTED; }
-  bool isWaitingACK() { return conn_status == CONNECTION_STATUS_WAITING_ACK; }
+  void setDisconnected() { conn_status = BN_CONNECTION_STATUS_NOT_CONNECTED; }
+  void setWaitingACK() { conn_status = BN_CONNECTION_STATUS_WAITING_ACK; }
+  void setConnected() { conn_status = BN_CONNECTION_STATUS_CONNECTED; }
+  bool isDisconnected() { return conn_status == BN_CONNECTION_STATUS_NOT_CONNECTED; }
+  bool isWaitingACK() { return conn_status == BN_CONNECTION_STATUS_WAITING_ACK; }
   void cleanBytes() {
     memset(received_bytes, 0, MAX_BUFFER_LENGTH); 
     num_received_bytes = 0;
   }
 
-  uint8_t conn_status = CONNECTION_STATUS_NOT_CONNECTED;
+  uint8_t conn_status = BN_CONNECTION_STATUS_NOT_CONNECTED;
   sockaddr_in ip_address;
   
   char received_bytes[MAX_BUFFER_LENGTH];

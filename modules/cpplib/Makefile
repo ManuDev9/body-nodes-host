@@ -1,7 +1,7 @@
 #
 # MIT License
 # 
-# Copyright (c) 2024 Manuel Bottini
+# Copyright (c) 2024-2025 Manuel Bottini
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,21 @@
 # SOFTWARE.
 #
 
-#!/bin/sh
 
-g++ -o test -g test.cpp -I../../body-nodes-common/cpp/  BnWifiHostCommunicator.cpp -lpthread
+
+# Use > for indentation
+.RECIPEPREFIX := >
+
+# Convert library code to Object file
+build-lib:
+> g++ -c -o BnWifiHostCommunicator.o -g BnWifiHostCommunicator.cpp -I../../body-nodes-common/cpp/src/ -fPIC
+
+# Create shared .SO library
+library: build-lib
+> g++ -shared -o libBodynodes.so BnWifiHostCommunicator.o
+
+build-exe:
+> g++ -o test -g test.cpp -I../../body-nodes-common/cpp/src/  BnWifiHostCommunicator.cpp -lpthread
+
+run: build-exe
+> ./test

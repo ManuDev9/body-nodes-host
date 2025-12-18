@@ -61,46 +61,46 @@ int main(){
       communicator.removeListener(&listener);
     } else if (c_command == 'h') {
       nlohmann::json action;
-      action[ACTION_TYPE_TAG] = ACTION_TYPE_HAPTIC_TAG;
-      action[ACTION_PLAYER_TAG] = "mario";
-      action[ACTION_BODYPART_TAG] = "katana";
-      action[ACTION_HAPTIC_DURATION_MS_TAG] = 250;
-      action[ACTION_HAPTIC_STRENGTH_TAG] = 200;
+      action[BN_ACTION_TYPE_TAG] = BN_ACTION_TYPE_HAPTIC_TAG;
+      action[BN_ACTION_PLAYER_TAG] = "mario";
+      action[BN_ACTION_BODYPART_TAG] = "katana";
+      action[BN_ACTION_HAPTIC_DURATION_MS_TAG] = 250;
+      action[BN_ACTION_HAPTIC_STRENGTH_TAG] = 200;
       
       communicator.addAction(action);
     } else if (c_command == 'p') {
       nlohmann::json action;
-      action[ACTION_TYPE_TAG] = ACTION_TYPE_SETPLAYER_TAG;
-      action[ACTION_PLAYER_TAG] = "mario";
-      action[ACTION_BODYPART_TAG] = "katana";
-      action[ACTION_SETPLAYER_NEWPLAYER_TAG] = "luigi";
+      action[BN_ACTION_TYPE_TAG] = BN_ACTION_TYPE_SETPLAYER_TAG;
+      action[BN_ACTION_PLAYER_TAG] = "mario";
+      action[BN_ACTION_BODYPART_TAG] = "katana";
+      action[BN_ACTION_SETPLAYER_NEWPLAYER_TAG] = "luigi";
       
       communicator.addAction(action);
     } else if (c_command == 'b') {
       nlohmann::json action;
-      action[ACTION_TYPE_TAG] = ACTION_TYPE_SETBODYPART_TAG;
-      action[ACTION_PLAYER_TAG] = "mario";
-      action[ACTION_BODYPART_TAG] = "katana";
-      action[ACTION_SETBODYPART_NEWBODYPART_TAG] = "upperarm_left";
+      action[BN_ACTION_TYPE_TAG] = BN_ACTION_TYPE_SETBODYPART_TAG;
+      action[BN_ACTION_PLAYER_TAG] = "mario";
+      action[BN_ACTION_BODYPART_TAG] = "katana";
+      action[BN_ACTION_SETBODYPART_NEWBODYPART_TAG] = "upperarm_left";
       
       communicator.addAction(action);
     } else if (c_command == 's') {
       nlohmann::json action;
-      action[ACTION_TYPE_TAG] = ACTION_TYPE_ENABLESENSOR_TAG;
-      action[ACTION_PLAYER_TAG] = "mario";
-      action[ACTION_BODYPART_TAG] = "katana";
-      action[ACTION_ENABLESENSOR_SENSORTYPE_TAG] = MESSAGE_SENSORTYPE_ORIENTATION_ABS_TAG;
-      action[ACTION_ENABLESENSOR_ENABLE_TAG] = false;
+      action[BN_ACTION_TYPE_TAG] = BN_ACTION_TYPE_ENABLESENSOR_TAG;
+      action[BN_ACTION_PLAYER_TAG] = "mario";
+      action[BN_ACTION_BODYPART_TAG] = "katana";
+      action[BN_ACTION_ENABLESENSOR_SENSORTYPE_TAG] = BN_SENSORTYPE_ORIENTATION_ABS_TAG;
+      action[BN_ACTION_ENABLESENSOR_ENABLE_TAG] = false;
       
       communicator.addAction(action);
     } else if (c_command == 'w') {
       nlohmann::json action;
-      action[ACTION_TYPE_TAG] = ACTION_TYPE_SETWIFI_TAG;
-      action[ACTION_PLAYER_TAG] = "mario";
-      action[ACTION_BODYPART_TAG] = "katana";
+      action[BN_ACTION_TYPE_TAG] = BN_ACTION_TYPE_SETWIFI_TAG;
+      action[BN_ACTION_PLAYER_TAG] = "mario";
+      action[BN_ACTION_BODYPART_TAG] = "katana";
       
-      action[ACTION_SETWIFI_SSID_TAG] = "upperbody";
-      action[ACTION_SETWIFI_PASSWORD_TAG] = "bodynodes1";
+      action[BN_ACTION_SETWIFI_SSID_TAG] = "upperbody";
+      action[BN_ACTION_SETWIFI_PASSWORD_TAG] = "bodynodes1";
       
       communicator.addAction(action);
     }

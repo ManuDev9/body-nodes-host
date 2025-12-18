@@ -160,9 +160,9 @@ void BnWifiHostCommunicator::addAction(nlohmann::json &action) {
 void BnWifiHostCommunicator::sendAllActions() {
   for (auto const& action : whc_actionsToSend) {
     std::cout << "action: " << action << '\n';
-    std::string player_bodypart = action[ACTION_PLAYER_TAG];
+    std::string player_bodypart = action[BN_ACTION_PLAYER_TAG];
     player_bodypart.append("_");
-    player_bodypart.append(action[ACTION_BODYPART_TAG]);
+    player_bodypart.append(action[BN_ACTION_BODYPART_TAG]);
 	  if(whc_connectionsMap.count(player_bodypart) == 0){
       printf("Player+Bodypart connection not existing\n");
       continue;
@@ -317,25 +317,25 @@ void BnWifiHostCommunicator::parseMessage(sockaddr_in &connection, nlohmann::jso
     //std::cout << "key: " << message.key() << ", value:" << message.value() << '\n';
     nlohmann::json message = elem.value();
     //std::cout << "message: " << message << '\n';
-    if(!message.contains(MESSAGE_PLAYER_TAG) ||
-      !message.contains(MESSAGE_BODYPART_TAG) ||
-      !message.contains(MESSAGE_SENSORTYPE_TAG) || 
-      !message.contains(MESSAGE_VALUE_TAG)) {
+    if(!message.contains(BN_MESSAGE_PLAYER_TAG) ||
+      !message.contains(BN_MESSAGE_BODYPART_TAG) ||
+      !message.contains(BN_MESSAGE_SENSORTYPE_TAG) || 
+      !message.contains(BN_MESSAGE_VALUE_TAG)) {
 		  
       printf("Json message received is incomplete\n");
       continue;
     }
-    std::string player = message[MESSAGE_PLAYER_TAG];
-    std::string bodypart = message[MESSAGE_BODYPART_TAG];
-    std::string sensortype = message[MESSAGE_SENSORTYPE_TAG];    
+    std::string player = message[BN_MESSAGE_PLAYER_TAG];
+    std::string bodypart = message[BN_MESSAGE_BODYPART_TAG];
+    std::string sensortype = message[BN_MESSAGE_SENSORTYPE_TAG];    
     whc_connectionsMap[player+"_"+bodypart] = connection;
 
-    whc_messagesMap[player+"_"+bodypart+"_"+sensortype] = message[MESSAGE_VALUE_TAG];    
+    whc_messagesMap[player+"_"+bodypart+"_"+sensortype] = message[BN_MESSAGE_VALUE_TAG];    
     for( std::list<BodynodeListener*>::iterator it_listener = whc_bodynodesListeners.begin(); 
         it_listener != whc_bodynodesListeners.end(); it_listener ++) {
 
       if( (*it_listener)->isOfInterest(player, bodypart, sensortype) ){
-	std::string value = message[MESSAGE_VALUE_TAG].dump();
+	std::string value = message[BN_MESSAGE_VALUE_TAG].dump();
         (*it_listener)->onMessageReceived(player, bodypart, sensortype, value);
       }
       
