@@ -1,0 +1,2 @@
+pybluez; python_version < "3.8"
+pylint
