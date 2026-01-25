@@ -48,7 +48,7 @@ int main(){
     std::cin >> c_command; // Get user input from the keyboard
     if(c_command == 'r') {
       std::string player = "mario";
-      std::string bodypart = "katana";
+      std::string bodypart = BN_BODYPART_KATANA_TAG;
       std::string sensortype = "orientation_abs";
       float outvalue[4] = {0, 0, 0, 0};
       communicator.getMessageValue(player, bodypart, sensortype, outvalue);
@@ -63,7 +63,7 @@ int main(){
       nlohmann::json action;
       action[BN_ACTION_TYPE_TAG] = BN_ACTION_TYPE_HAPTIC_TAG;
       action[BN_ACTION_PLAYER_TAG] = "mario";
-      action[BN_ACTION_BODYPART_TAG] = "katana";
+      action[BN_ACTION_BODYPART_TAG] = BN_BODYPART_KATANA_TAG;
       action[BN_ACTION_HAPTIC_DURATION_MS_TAG] = 250;
       action[BN_ACTION_HAPTIC_STRENGTH_TAG] = 200;
       
@@ -72,7 +72,7 @@ int main(){
       nlohmann::json action;
       action[BN_ACTION_TYPE_TAG] = BN_ACTION_TYPE_SETPLAYER_TAG;
       action[BN_ACTION_PLAYER_TAG] = "mario";
-      action[BN_ACTION_BODYPART_TAG] = "katana";
+      action[BN_ACTION_BODYPART_TAG] = BN_BODYPART_KATANA_TAG;
       action[BN_ACTION_SETPLAYER_NEWPLAYER_TAG] = "luigi";
       
       communicator.addAction(action);
@@ -80,15 +80,15 @@ int main(){
       nlohmann::json action;
       action[BN_ACTION_TYPE_TAG] = BN_ACTION_TYPE_SETBODYPART_TAG;
       action[BN_ACTION_PLAYER_TAG] = "mario";
-      action[BN_ACTION_BODYPART_TAG] = "katana";
-      action[BN_ACTION_SETBODYPART_NEWBODYPART_TAG] = "upperarm_left";
+      action[BN_ACTION_BODYPART_TAG] = BN_BODYPART_KATANA_TAG;
+      action[BN_ACTION_SETBODYPART_NEWBODYPART_TAG] = BN_BODYPART_UPPERARM_LEFT_TAG;
       
       communicator.addAction(action);
     } else if (c_command == 's') {
       nlohmann::json action;
       action[BN_ACTION_TYPE_TAG] = BN_ACTION_TYPE_ENABLESENSOR_TAG;
       action[BN_ACTION_PLAYER_TAG] = "mario";
-      action[BN_ACTION_BODYPART_TAG] = "katana";
+      action[BN_ACTION_BODYPART_TAG] = BN_BODYPART_KATANA_TAG;
       action[BN_ACTION_ENABLESENSOR_SENSORTYPE_TAG] = BN_SENSORTYPE_ORIENTATION_ABS_TAG;
       action[BN_ACTION_ENABLESENSOR_ENABLE_TAG] = false;
       
@@ -97,7 +97,7 @@ int main(){
       nlohmann::json action;
       action[BN_ACTION_TYPE_TAG] = BN_ACTION_TYPE_SETWIFI_TAG;
       action[BN_ACTION_PLAYER_TAG] = "mario";
-      action[BN_ACTION_BODYPART_TAG] = "katana";
+      action[BN_ACTION_BODYPART_TAG] = BN_BODYPART_KATANA_TAG;
       
       action[BN_ACTION_SETWIFI_SSID_TAG] = "upperbody";
       action[BN_ACTION_SETWIFI_PASSWORD_TAG] = "bodynodes1";
