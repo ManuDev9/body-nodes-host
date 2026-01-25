@@ -23,8 +23,11 @@
  */
 
 #include "BodynodesHostInterface.h"
-#include "BnUtils.h"
 #include "BnDatatypes.h"
+#include <thread>
+#include <map>
+#include <list>
+
 
 #ifndef __BN_WIFI_HOST_COMMUNICATOR
 #define __BN_WIFI_HOST_COMMUNICATOR

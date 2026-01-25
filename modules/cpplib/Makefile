@@ -27,16 +27,20 @@
 # Use > for indentation
 .RECIPEPREFIX := >
 
-# Convert library code to Object file
-build-lib:
-> g++ -c -o BnWifiHostCommunicator.o -g BnWifiHostCommunicator.cpp -I../../body-nodes-common/cpp/src/ -fPIC
+build-folder:
+> mkdir -p build
 
-# Create shared .SO library
-library: build-lib
-> g++ -shared -o libBodynodes.so BnWifiHostCommunicator.o
+build/BnWifiHostCommunicator.o: build-folder
+> g++ -c -o build/BnWifiHostCommunicator.o -g src/BnWifiHostCommunicator.cpp -Iinclude -Ithird_party -I../../body-nodes-common/cpp/src/ -fPIC
 
-build-exe:
-> g++ -o test -g test.cpp -I../../body-nodes-common/cpp/src/  BnWifiHostCommunicator.cpp -lpthread
+build-lib: build/BnWifiHostCommunicator.o
+> g++ -shared -o build/libBnWifiHostCommunicator.so build/BnWifiHostCommunicator.o
 
-run: build-exe
-> ./test
+build/host_example: 
+> g++ -o build/host_example -g host_example.cpp -Iinclude -Ithird_party -I../../body-nodes-common/cpp/src/ -Lbuild -lBnWifiHostCommunicator -lpthread
+
+run: build/host_example
+> LD_LIBRARY_PATH=$LD_LIBRARY_PATH:build ./build/host_example
+
+clean: 
+> rm -r build
