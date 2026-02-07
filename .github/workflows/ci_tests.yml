@@ -25,7 +25,7 @@ jobs:
     - name: Install System Python and Bluetooth Headers
       run: |
         sudo apt-get update
-        sudo apt-get install -y python3 python3-dev python3-pip libbluetooth-dev
+        sudo apt-get install -y python3 python3-dev python3-pip
 
     - name: Install Python Tools
       run: |
@@ -36,9 +36,18 @@ jobs:
       working-directory: ./modules/pythonlib
       run: make check-wifi
 
+    - name: Prepare Bluetooth
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libbluetooth-dev
+
     - name: Check Bluetooth
       working-directory: ./modules/pythonlib
       run: make check-bluetooth
+
+    - name: Prepare BLE
+      working-directory: ./modules/pythonlib
+      run: pip install -r requirements-ble.txt
 
     - name: Check BLE
       working-directory: ./modules/pythonlib
