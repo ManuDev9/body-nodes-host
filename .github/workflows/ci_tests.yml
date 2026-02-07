@@ -1,0 +1,45 @@
+name: Testing all libraries
+
+# Trigger the workflow on pushes to main and any pull request
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+
+  # -----------------------------------------------------------------
+  # Testing Modules -> PythonLib
+  # -----------------------------------------------------------------
+  test_modules_pythonlib:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+          submodules: true
+    
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12.X'
+        
+    - name: Install Python Tools
+      run: |
+        pip install pylint
+        pip install black
+
+    - name: Check Wifi
+      working-directory: ./modules/pythonlib
+      run: make check-wifi
+
+    - name: Check Bluetooth
+      working-directory: ./modules/pythonlib
+      run: make check-bluetooth
+
+    - name: Check BLE
+      working-directory: ./modules/pythonlib
+      run: make check-ble

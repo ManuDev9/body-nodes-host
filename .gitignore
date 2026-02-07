@@ -4,6 +4,6 @@ __pycache__
 *.so
 modules/cpplib_wifi/test
 android/SampleBodynodesHost/.idea/*
-venv
+venv*
 
 modules/cpplib/test

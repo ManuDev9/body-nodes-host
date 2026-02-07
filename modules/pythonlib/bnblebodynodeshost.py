@@ -1,18 +1,18 @@
 #
 # MIT License
-# 
+#
 # Copyright (c) 2024-2025 Manuel Bottini
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,12 +21,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
-import sys
-import json
+"""
+Module implementation of the BLE Bodynode Host.
+"""
+
 import threading
 import time
-import uuid
+import sys
 import struct
 
 import asyncio
@@ -37,206 +38,283 @@ from bleak import BleakClient
 # sudo apt-get update
 # python3 -m pip install bleak
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__))+"/../../body-nodes-common/python/")
+from bncommon import BnConstants
 
-import bnconstants
-import bncommon
 
 def current_milli_time():
+    """Utility function that returns the current time in milliseconds"""
     return round(time.time() * 1000)
 
-# Extend this class to create your own listeners
+
 class BodynodeListener:
-    def onMessageReceived(self, player, bodypart, sensortype, value):
-        print("onMessageReceive: player="+player + " bodypart="+bodypart + " sensortype="+sensortype + " value="+str(value))
-    def isOfInterest(self, player, bodypart, sensortype):
+    """Listener class to receive bodynodes data"""
+
+    def on_message_received(self, player, bodypart, sensortype, value):
+        """Callback with player, bodypart, sensortype, and value info"""
+        print(
+            f"on_message_received: player={player} bodypart={bodypart} sensortype={sensortype} value={value}"
+        )
+
+    def is_of_interest(self, player, bodypart, sensortype):
+        """By overriding this function you can set which set of player / bodypart / sensortype the listerner returns data of"""
+        print(
+            f"is_of_interest: returning True for player={player} bodypart={bodypart} sensortype={sensortype}"
+        )
         return True
 
+
 class BodynodeListenerTest(BodynodeListener):
+    """Implementation example of a BodynodeListener"""
+
     def __init__(self):
         print("This is a test class")
 
-class BnBLEHostCommunicator:
 
-    # Initializes the object, no input parameters are required
+class BnBLEHostCommunicator:
+    """Bodynodes BLE Host ommunicator implementation"""
+
     def __init__(self):
         # Thread for data connection
-        self.blec_dataConnectionThread = None
+        self.blec_data_connection_thread = None
         # Boolean to stop the thread
-        self.blec_toStop = True
-        # Json object containing the messages for each player+bodypart+sensortype combination (key)
-        self.blec_messagesMap = {}
-        # Map the BLE client address to the player+bodypart combination
-        self.blec_BLEAddress_PlayerBodypartMap = {}
-        # Map the player+bodypart combination to the BLE client
-        self.blec_PlayerBodypart_BLEdevicesMap = {}
+        self.blec_to_stop = True
+
+        self.blec_maps = {
+            # Json object containing the messages for each player+bodypart+sensortype combination (key)
+            "messages": {},
+            # Map the BLE client address to the player+bodypart combination
+            "BLEAddress_PlayerBodypart": {},
+            # Map the player+bodypart combination to the BLE client
+            "PlayerBodypart_BLEdevices": {},
+        }
         # List of actions to send
-        self.blec_actionsToSend = []
-        self.blec_bodynodesListeners = []
+        self.blec_actions_to_send = []
+        self.blec_bodynodes_listeners = []
         self.blec_identifiers = None
 
-# Public functions
+    # Public functions
 
-    # Starts the communicator
     def start(self, identifiers):
+        """Starts the communicator"""
+
         # You are supposed to discover the bt_addresses yourself
         # Do also a pairing, connect, and if you want, trust
         # make use of bluetoothctl
         print("BnBLEHostCommunicator - Starting")
 
-        self.blec_toStop = True
-
+        self.blec_to_stop = True
         self.blec_identifiers = identifiers
-        self.blec_BLEAddress_PlayerBodypartMap = {}
-        self.blec_PlayerBodypart_BLEdevicesMap = {}
-        self.blec_actionsToSend = []
-        self.blec_dataConnectionThread = threading.Thread(target=self.run_data_connection_background)
+        self.blec_maps = {
+            "messages": {},
+            "BLEAddress_PlayerBodypart": {},
+            "PlayerBodypart_BLEdevices": {},
+        }
+        self.blec_actions_to_send = []
+        self.blec_data_connection_thread = threading.Thread(
+            target=self.run_data_connection_background
+        )
 
-        self.blec_toStop = False
-        self.blec_dataConnectionThread.start()
+        self.blec_to_stop = False
+        self.blec_data_connection_thread.start()
 
-    # Stops the communicator
     def stop(self):
+        """Stops the communicator"""
+
         print("BnBLEHostCommunicator - Stopping")
 
-        self.blec_toStop = True
-        if self.blec_dataConnectionThread.is_alive():
-            self.blec_dataConnectionThread.join()
+        self.blec_to_stop = True
+        if self.blec_data_connection_thread.is_alive():
+            self.blec_data_connection_thread.join()
 
-        self.blec_BLEAddress_PlayerBodypartMap = {}
-        self.blec_PlayerBodypart_BLEdevicesMap = {}
-        self.blec_actionsToSend = []
-        self.blec_bodynodesListeners = []
+        self.blec_maps = {
+            "messages": {},
+            "BLEAddress_PlayerBodypart": {},
+            "PlayerBodypart_BLEdevices": {},
+        }
+
+        self.blec_actions_to_send = []
+        self.blec_bodynodes_listeners = []
         self.blec_identifiers = None
-        
-    # Indicates if the host is running and listening
-    def isRunning(self):
-        return not self.blec_toStop
 
-    # Update function, not in use
+    def is_running(self):
+        """Returns true if the communicator is running, false otherwise"""
+
+        return not self.blec_to_stop
+
     def update(self):
+        """Update function, not in use"""
+
         print("update function called [NOT IN USE]")
 
     def run_data_connection_background(self):
-        asyncio.run(self.run_data_connection_background_tasks() )
+        """Data connection runner function"""
+
+        asyncio.run(self.run_data_connection_background_tasks())
 
     async def run_data_connection_background_tasks(self):
+        """Data connection task function"""
 
-        print("")
-        print("Discovering devices")
+        print("\nDiscovering devices")
         try:
             devices = await BleakScanner.discover()
         except OSError:
             print("")
-            print("It was not possible to discover BLE devices, make sure you have the Bluetooth ON in your PC/Laptop")
-            self.blec_toStop = True
+            print(
+                "It was not possible to discover BLE devices, make sure you have the Bluetooth ON in your PC/Laptop"
+            )
+            self.blec_to_stop = True
             return
-        
+
         list_subscribe = []
 
         print("")
         print(devices)
         for device in devices:
-            if device.name == None:
+            if device.name is None:
                 continue
-            if device.name == self.blec_identifiers[0]:
-                print("Connecting to " + device.address)
-                client =  BleakClient(device.address)
-                await client.connect()
-                services = client.services
-                for service in services:
-                    print(f"Service: {service.uuid}")
-                    if service.uuid == bnconstants.BLE_BODYNODES_SERVICE_UUID.lower():
-                        for characteristic in service.characteristics:
-                            print(f" - Characteristic: {characteristic.uuid}")
-                            if ( characteristic.uuid.lower() == bnconstants.BLE_BODYNODES_CHARA_PLAYER_UUID.lower() or
-                                    characteristic.uuid.lower() == bnconstants.BLE_BODYNODES_CHARA_BODYPART_UUID.lower() ):
+            if device.name != self.blec_identifiers[0]:
+                continue
 
-                                print("Reading chara")
-                                value = await client.read_gatt_char(characteristic.uuid)
-                                self.__check_chara(client, characteristic.uuid, value)
-                                
-                            if( characteristic.uuid.lower() == bnconstants.BLE_BODYNODES_CHARA_ORIENTATION_ABS_VALUE_UUID.lower() or
-                                    characteristic.uuid.lower() == bnconstants.BLE_BODYNODES_CHARA_ACCELERATION_REL_VALUE_UUID.lower() or
-                                    characteristic.uuid.lower() == bnconstants.BLE_BODYNODES_CHARA_GLOVE_VALUE_UUID.lower() or
-                                    characteristic.uuid.lower() == bnconstants.BLE_BODYNODES_CHARA_SHOE_UUID.lower() or
-                                    characteristic.uuid.lower() == bnconstants.BLE_BODYNODES_CHARA_ANGULARVELOCITY_REL_VALUE_UUID.lower()
-                                    ):
+            print("Connecting to " + device.address)
+            client = BleakClient(device.address)
+            await client.connect()
+            services = client.services
+            for service in services:
+                print(f"Service: {service.uuid}")
+                if service.uuid != BnConstants.BLE_SERVICE_UUID.lower():
+                    continue
 
-                                print("Subscribing to chara")
-                                list_subscribe.append({ "client": client , "characteristic_uuid" : characteristic.uuid })
-                                
-        
-        await self.__ble_subscribe_all( list_subscribe ) 
+                for characteristic in service.characteristics:
+                    print(f" - Characteristic: {characteristic.uuid}")
+                    if (
+                        characteristic.uuid.lower()
+                        == BnConstants.BLE_CHARA_PLAYER_UUID.lower()
+                        or characteristic.uuid.lower()
+                        == BnConstants.BLE_CHARA_BODYPART_UUID.lower()
+                    ):
 
-        for plbo in self.blec_PlayerBodypart_BLEdevicesMap.keys():
-            client = self.blec_PlayerBodypart_BLEdevicesMap[plbo]
+                        print("Reading chara")
+                        value = await client.read_gatt_char(characteristic.uuid)
+                        self.__check_chara(client, characteristic.uuid, value)
+
+                    if (
+                        characteristic.uuid.lower()
+                        == BnConstants.BLE_CHARA_ORIENTATION_ABS_VALUE_UUID.lower()
+                        or characteristic.uuid.lower()
+                        == BnConstants.BLE_CHARA_ACCELERATION_REL_VALUE_UUID.lower()
+                        or characteristic.uuid.lower()
+                        == BnConstants.BLE_CHARA_GLOVE_VALUE_UUID.lower()
+                        or characteristic.uuid.lower()
+                        == BnConstants.BLE_CHARA_SHOE_UUID.lower()
+                        or characteristic.uuid.lower()
+                        == BnConstants.BLE_CHARA_ANGULARVELOCITY_REL_VALUE_UUID.lower()
+                    ):
+
+                        print("Subscribing to chara")
+                        list_subscribe.append(
+                            {
+                                "client": client,
+                                "characteristic_uuid": characteristic.uuid,
+                            }
+                        )
+
+        await self.__ble_subscribe_all(list_subscribe)
+
+        for _, client in self.blec_maps["PlayerBodypart_BLEdevices"].items():
             if client.is_connected:
                 print("Disconnecting from " + client.address)
                 await client.disconnect()
-        
+
         print("Closing the data connection thread")
-            
-    # Returns the message associated to the requested player+bodypart+sensortype combination
-    def getMessageValue(self, player, bodypart, sensortype):
-        if player+"|"+bodypart+"|"+sensortype in self.blec_messagesMap:
-            return self.blec_messagesMap[player+"|"+bodypart+"|"+sensortype]
+
+    def get_message_value(self, player, bodypart, sensortype):
+        """Returns the message associated to the requested player+bodypart+sensortype combination"""
+
+        pbs_key = f"{player}|{bodypart}|{sensortype}"
+        if pbs_key in self.blec_maps["messages"]:
+            return self.blec_maps["messages"][pbs_key]
         return None
 
-    # Adds an action to the list of actions to be sent
-    def addAction(self, action):
-        self.blec_actionsToSend.append(action);
-        
-    # Sends all actions in the list
-    def sendAllActions(self):
-        print("sendAllActions function called [NOT IMPLEMENTED]")
-        return
+    def add_action(self, action):
+        """Adds an action to the list of actions to be sent"""
 
-    # Checks if everything is ok. Returns true if it is indeed ok, false otherwise
-    def checkAllOk(self):
-        return not self.blec_toStop
+        self.blec_actions_to_send.append(action)
 
-    def addListener(self, listener):
-        if listener == None:
+    def send_all_actions(self):
+        """Sends all actions in the list"""
+
+        print("send_all_actions function called [NOT IMPLEMENTED]")
+
+    def check_all_ok(self):
+        """Checks if everything is ok. Returns true if it is indeed ok, false otherwise"""
+
+        return not self.blec_to_stop
+
+    def add_listener(self, listener):
+        """Add a listener to the communicator"""
+
+        if listener is None:
             print("Given listener is empty")
             return False
         if not isinstance(listener, BodynodeListener):
             print("Given listener does not extend BodynodeListener")
             return False
-        self.blec_bodynodesListeners.append(listener)
-        return True        
-        
-    def removeListener(self, listener):
-        self.blec_bodynodesListeners.remove(listener)
-    
-    def removeAllListeners(self):
-        self.blec_bodynodesListeners = []
+        self.blec_bodynodes_listeners.append(listener)
+        return True
 
-# Private functions
+    def remove_listener(self, listener):
+        """Remove a listener in the communicator"""
+
+        self.blec_bodynodes_listeners.remove(listener)
+
+    def remove_all_listeners(self):
+        """Remove all listeners in the communicator"""
+
+        self.blec_bodynodes_listeners = []
+
+    # Private functions
 
     async def __ble_subscribe_chara(self, client, uuid):
-        await client.start_notify(uuid, lambda sender, value: self.__device_notification(sender, client.address, uuid, value)  ) 
+        """Subscribe to a BLE characteristic"""
 
-        while not self.blec_toStop:
+        await client.start_notify(
+            uuid,
+            lambda sender, value: self.__receive_notification(
+                sender, client.address, uuid, value
+            ),
+        )
+
+        while not self.blec_to_stop:
             await asyncio.sleep(0.005)
 
         if client.is_connected:
-            print( "Closing this subscription " +client.address + " "+ uuid )
+            print("Closing this subscription " + client.address + " " + uuid)
             await client.stop_notify(uuid)
 
     async def __ble_subscribe_all(self, list_subscribe):
+        """Subscribe to a list of BLE characteristics"""
+
         tasks = []
         for subscr in list_subscribe:
-            tasks.append(self.__ble_subscribe_chara(subscr["client"], subscr["characteristic_uuid"]))
+            tasks.append(
+                self.__ble_subscribe_chara(
+                    subscr["client"], subscr["characteristic_uuid"]
+                )
+            )
         return await asyncio.gather(*tasks)
 
-    def __device_notification(self, sender, ble_address, characteristic_uuid, value):
-        #print(f"Notification from {ble_address} {characteristic_uuid}")
+    def __receive_notification(self, sender, ble_address, characteristic_uuid, value):
+        """Receive a notification with a value"""
 
-        jsonMessage = self.__createJsonMessageFromBLEChara(characteristic_uuid, value);
+        # print(f"Notification from {ble_address} {characteristic_uuid}")
 
-        player = self.blec_BLEAddress_PlayerBodypartMap[ble_address]["player"]
-        bodypart = self.blec_BLEAddress_PlayerBodypartMap[ble_address]["bodypart"]
+        json_message = self.__create_json_message_from_ble_chara(
+            characteristic_uuid, value
+        )
+
+        print(sender)
+        player = self.blec_maps["BLEAddress_PlayerBodypart"][ble_address]["player"]
+        bodypart = self.blec_maps["BLEAddress_PlayerBodypart"][ble_address]["bodypart"]
         if player == "":
             print("Missing player")
             return
@@ -244,115 +322,161 @@ class BnBLEHostCommunicator:
             print("Missing bodypart")
             return
 
-        sensortype = jsonMessage[bnconstants.MESSAGE_SENSORTYPE_TAG]
-        self.blec_messagesMap[player +"|"+ bodypart+"|"+sensortype] = str(jsonMessage[bnconstants.MESSAGE_VALUE_TAG])
-        for listener in self.blec_bodynodesListeners:
-            if listener.isOfInterest(player, bodypart, sensortype ):
-                listener.onMessageReceived(player, bodypart, sensortype, jsonMessage[bnconstants.MESSAGE_VALUE_TAG])
+        sensortype = json_message[BnConstants.MESSAGE_SENSORTYPE_TAG]
+        self.blec_maps["messages"][player + "|" + bodypart + "|" + sensortype] = str(
+            json_message[BnConstants.MESSAGE_VALUE_TAG]
+        )
+        for listener in self.blec_bodynodes_listeners:
+            if listener.is_of_interest(player, bodypart, sensortype):
+                listener.on_message_received(
+                    player,
+                    bodypart,
+                    sensortype,
+                    json_message[BnConstants.MESSAGE_VALUE_TAG],
+                )
 
-    
     def __check_chara(self, client, uuid, value):
-        
+        """Check characteristic validity and set in map"""
+
         player = None
         bodypart = None
-        
-        if uuid == bnconstants.BLE_BODYNODES_CHARA_PLAYER_UUID.lower() :
+
+        if uuid == BnConstants.BLE_CHARA_PLAYER_UUID.lower():
             player = value.decode("utf-8")
 
-        if uuid == bnconstants.BLE_BODYNODES_CHARA_BODYPART_UUID.lower() :
+        if uuid == BnConstants.BLE_CHARA_BODYPART_UUID.lower():
             bodypart = value.decode("utf-8")
 
-        if client.address not in self.blec_BLEAddress_PlayerBodypartMap:
-            self.blec_BLEAddress_PlayerBodypartMap[client.address] = { "player": "", "bodypart" : "" }
+        if client.address not in self.blec_maps["BLEAddress_PlayerBodypart"]:
+            self.blec_maps["BLEAddress_PlayerBodypart"][client.address] = {
+                "player": "",
+                "bodypart": "",
+            }
 
-        if player != None:
-            self.blec_BLEAddress_PlayerBodypartMap[client.address]["player"] = player
+        if player is not None:
+            self.blec_maps["BLEAddress_PlayerBodypart"][client.address][
+                "player"
+            ] = player
 
-        if bodypart != None:
-            self.blec_BLEAddress_PlayerBodypartMap[client.address]["bodypart"] = bodypart
+        if bodypart is not None:
+            self.blec_maps["BLEAddress_PlayerBodypart"][client.address][
+                "bodypart"
+            ] = bodypart
 
-        player = self.blec_BLEAddress_PlayerBodypartMap[client.address]["player"]
-        bodypart = self.blec_BLEAddress_PlayerBodypartMap[client.address]["bodypart"]
-        
+        player = self.blec_maps["BLEAddress_PlayerBodypart"][client.address]["player"]
+        bodypart = self.blec_maps["BLEAddress_PlayerBodypart"][client.address][
+            "bodypart"
+        ]
+
         if player != "" and bodypart != "":
-            self.blec_PlayerBodypart_BLEdevicesMap[player+"|"+bodypart] = client
+            self.blec_maps["PlayerBodypart_BLEdevices"][
+                player + "|" + bodypart
+            ] = client
 
-    def __createJsonMessageFromBLEChara(self, characteristic_uuid, value):
-        jsonMessage = {}
+    def __create_json_message_from_ble_chara(self, characteristic_uuid, value):
+        """Create a JSON from a characteristic"""
+
+        json_message = {}
         try:
-        
-            if characteristic_uuid == bnconstants.BLE_BODYNODES_CHARA_ORIENTATION_ABS_VALUE_UUID.lower():
-                jsonMessage[bnconstants.MESSAGE_SENSORTYPE_TAG] = bnconstants.SENSORTYPE_ORIENTATION_ABS_TAG
+
+            if (
+                characteristic_uuid
+                == BnConstants.BLE_CHARA_ORIENTATION_ABS_VALUE_UUID.lower()
+            ):
+                json_message[BnConstants.MESSAGE_SENSORTYPE_TAG] = (
+                    BnConstants.SENSORTYPE_ORIENTATION_ABS_TAG
+                )
                 # '>f' means big-endian float
-                jsonMessage[bnconstants.MESSAGE_VALUE_TAG] = [
-                    struct.unpack('>f', value[0:4])[0],
-                    struct.unpack('>f', value[4:8])[0],
-                    struct.unpack('>f', value[8:12])[0],
-                    struct.unpack('>f', value[12:16])[0]
+                json_message[BnConstants.MESSAGE_VALUE_TAG] = [
+                    struct.unpack(">f", value[0:4])[0],
+                    struct.unpack(">f", value[4:8])[0],
+                    struct.unpack(">f", value[8:12])[0],
+                    struct.unpack(">f", value[12:16])[0],
                 ]
 
-            elif characteristic_uuid == bnconstants.BLE_BODYNODES_CHARA_ACCELERATION_REL_VALUE_UUID.lower():
-                jsonMessage[bnconstants.MESSAGE_SENSORTYPE_TAG] = bnconstants.SENSORTYPE_ACCELERATION_REL_TAG
+            elif (
+                characteristic_uuid
+                == BnConstants.BLE_CHARA_ACCELERATION_REL_VALUE_UUID.lower()
+            ):
+                json_message[BnConstants.MESSAGE_SENSORTYPE_TAG] = (
+                    BnConstants.SENSORTYPE_ACCELERATION_REL_TAG
+                )
                 # '>f' means big-endian float
-                jsonMessage[bnconstants.MESSAGE_VALUE_TAG] = [
-                    struct.unpack('>f', value[0:4])[0],
-                    struct.unpack('>f', value[4:8])[0],
-                    struct.unpack('>f', value[8:12])[0]
+                json_message[BnConstants.MESSAGE_VALUE_TAG] = [
+                    struct.unpack(">f", value[0:4])[0],
+                    struct.unpack(">f", value[4:8])[0],
+                    struct.unpack(">f", value[8:12])[0],
                 ]
 
-            elif characteristic_uuid == bnconstants.BLE_BODYNODES_CHARA_GLOVE_VALUE_UUID.lower():
-                jsonMessage[bnconstants.MESSAGE_SENSORTYPE_TAG] = bnconstants.SENSORTYPE_GLOVE_TAG
-                jsonMessage[bnconstants.MESSAGE_VALUE_TAG] = [
+            elif characteristic_uuid == BnConstants.BLE_CHARA_GLOVE_VALUE_UUID.lower():
+                json_message[BnConstants.MESSAGE_SENSORTYPE_TAG] = (
+                    BnConstants.SENSORTYPE_GLOVE_TAG
+                )
+                json_message[BnConstants.MESSAGE_VALUE_TAG] = [
                     value[0],
                     value[1],
                     value[2],
                     value[3],
                     value[4],
-
                     value[5],
                     value[6],
                     value[7],
-                    value[8]
+                    value[8],
                 ]
-            elif characteristic_uuid == bnconstants.BLE_BODYNODES_CHARA_SHOE_UUID.lower():
-                jsonMessage[bnconstants.MESSAGE_SENSORTYPE_TAG] = bnconstants.SENSORTYPE_SHOE_TAG
-                jsonMessage[bnconstants.MESSAGE_VALUE_TAG] = [
-                    value[0]
-                ]
-            elif characteristic_uuid == bnconstants.BLE_BODYNODES_CHARA_ANGULARVELOCITY_REL_VALUE_UUID.lower():
-                jsonMessage[bnconstants.MESSAGE_SENSORTYPE_TAG] = bnconstants.SENSORTYPE_ANGULARVELOCITY_REL_TAG
+            elif characteristic_uuid == BnConstants.BLE_CHARA_SHOE_UUID.lower():
+                json_message[BnConstants.MESSAGE_SENSORTYPE_TAG] = (
+                    BnConstants.SENSORTYPE_SHOE_TAG
+                )
+                json_message[BnConstants.MESSAGE_VALUE_TAG] = [value[0]]
+            elif (
+                characteristic_uuid
+                == BnConstants.BLE_CHARA_ANGULARVELOCITY_REL_VALUE_UUID.lower()
+            ):
+                json_message[BnConstants.MESSAGE_SENSORTYPE_TAG] = (
+                    BnConstants.SENSORTYPE_ANGULARVELOCITY_REL_TAG
+                )
                 # '>f' means big-endian float
-                jsonMessage[bnconstants.MESSAGE_VALUE_TAG] = [
-                    struct.unpack('>f', value[0:4])[0],
-                    struct.unpack('>f', value[4:8])[0],
-                    struct.unpack('>f', value[8:12])[0]
+                json_message[BnConstants.MESSAGE_VALUE_TAG] = [
+                    struct.unpack(">f", value[0:4])[0],
+                    struct.unpack(">f", value[4:8])[0],
+                    struct.unpack(">f", value[8:12])[0],
                 ]
         except TypeError as err:
             print(err)
-            jsonMessage = {}
+            json_message = {}
 
-        return jsonMessage
-        
+        return json_message
 
 
-if __name__=="__main__":
+def main():
+    """Main function running a default communicator"""
+
     communicator = BnBLEHostCommunicator()
-    communicator.start([bnconstants.BLE_BODYNODES_NAME])
+    communicator.start([BnConstants.BLE_NAME])
     listener = BodynodeListenerTest()
     command = "n"
     while command != "e":
-        command = input("Type a command [r/l/u to read message, h/p/b/s/w to send action, e to exit]: ")
+        command = input(
+            "Type a command [r/l/u to read message, actions not supported, e to exit]: "
+        )
         print(command)
         if command == "r":
-            outvalue = communicator.getMessageValue("1", "katana", "orientation_abs")
+            outvalue = communicator.get_message_value(
+                "1",
+                BnConstants.BODYPART_KATANA_TAG,
+                BnConstants.SENSORTYPE_ORIENTATION_ABS_TAG,
+            )
             print(outvalue)
 
-        elif command == 'l':
-            communicator.addListener(listener)
-            
-        elif command == 'u':
-            communicator.removeListener(listener)
-            
-    
+        elif command == "l":
+            communicator.add_listener(listener)
+
+        elif command == "u":
+            communicator.remove_listener(listener)
+
     communicator.stop()
-    exit()
+
+
+if __name__ == "__main__":
+    main()
+    sys.exit()

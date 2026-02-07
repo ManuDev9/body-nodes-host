@@ -1,7 +1,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2019-2025 Manuel Bottini
+# Copyright (c) 2019-2026 Manuel Bottini
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,12 +35,9 @@ from bncommon import BnConstants
 
 # TO REMOVE
 bodynodes_server = {
-    "port": 12345,
     "buffer_size": 1024,
     "connection_keep_alive_rec_interval_ms": 60000,
     "connection_ack_interval_ms": 1000,
-    "multicast_group": "239.192.1.99",
-    "multicast_port": 12346,
     "multicast_ttl": 2,
 }
 
@@ -159,7 +156,7 @@ class BnWifiHostCommunicator:
 
         self.whc_identifier = communication_parameters[0]
         try:
-            self.whc_connectors["data"].bind(("", bodynodes_server["port"]))
+            self.whc_connectors["data"].bind(("", BnConstants.WIFI_PORT))
         except OSError:
             print(
                 "Cannot start the data socket. Is the IP address correct? Or is there any ip connection?"
@@ -170,7 +167,7 @@ class BnWifiHostCommunicator:
             all_ifaces = socket.gethostbyname_ex(socket.gethostname())[2]
             print(all_ifaces)
 
-            group = socket.inet_aton(bodynodes_server["multicast_group"])
+            group = socket.inet_aton(BnConstants.WIFI_MULTICASTGROUP_DEFAULT)
             # iface = inet_aton(self.whc_host_ip) # Connect the multicast packets on this interface.
             self.whc_connectors["multicast"].setsockopt(
                 socket.IPPROTO_IP,
@@ -203,6 +200,7 @@ class BnWifiHostCommunicator:
         self.whc_connection_threads["multicast"].join()
         print("BnWifiHostCommunicator - Stopped!")
         self.whc_bodynodes_listeners = []
+
         self.whc_connection_threads = {
             "data": None,
             "multicast": None,
@@ -278,7 +276,7 @@ class BnWifiHostCommunicator:
         """Checks if everything is ok. Returns true if it is indeed ok, false otherwise"""
 
         self.__receive_bytes()
-        for tempconnections_data in self.whc_maps["tempconnections_data"]:
+        for _, tempconnections_data in self.whc_maps["tempconnections_data"].items():
 
             # print("Connection to check "+tmp_connection_str+"\n", )
             # if (
@@ -376,7 +374,7 @@ class BnWifiHostCommunicator:
 
         # print( "Sending ACKH to = " +connection_data["ip_address"] )
         self.whc_connectors["data"].sendto(
-            str.encode("ACKH"), (connection_data["ip_address"], 12345)
+            str.encode("ACKH"), (connection_data["ip_address"], BnConstants.WIFI_PORT)
         )
 
     def __send_multicast_message(self):
@@ -386,7 +384,7 @@ class BnWifiHostCommunicator:
         # print("Sending a BN multicast: "+str(self.whc_identifier))
         self.whc_connectors["multicast"].sendto(
             self.whc_identifier.encode("utf-8"),
-            (bodynodes_server["multicast_group"], bodynodes_server["multicast_port"]),
+            (BnConstants.WIFI_MULTICASTGROUP_DEFAULT, BnConstants.WIFI_MULTICAST_PORT),
         )
 
     def __check_for_ackn(self, connection_data):
@@ -445,7 +443,6 @@ class BnWifiHostCommunicator:
         ] = current_milli_time()
         self.__parse_messages(tmp_connection_str, json_messages)
 
-    #
     def __parse_messages(self, ip_address, json_messages):
         """Puts the json messages in the messages map and associated them with the connection"""
 
@@ -469,8 +466,8 @@ class BnWifiHostCommunicator:
             self.whc_maps["messages"][pbs_key] = message[BnConstants.MESSAGE_VALUE_TAG]
 
             for listener in self.whc_bodynodes_listeners:
-                if listener.isOfInterest(player, bodypart, sensortype):
-                    listener.onMessageReceived(
+                if listener.is_of_interest(player, bodypart, sensortype):
+                    listener.on_message_received(
                         player,
                         bodypart,
                         sensortype,

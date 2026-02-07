@@ -27,8 +27,9 @@
 format-wifi:
 > black bnwifibodynodeshost.py
 
-check-wifi: format-wifi
+check-wifi:
 > PYTHONPATH=../../body-nodes-common/python/ pylint --disable=C0301 bnwifibodynodeshost.py
+> black --check bnwifibodynodeshost.py
 
 run-wifi: check-wifi
 > PYTHONPATH=../../body-nodes-common/python/ python3 bnwifibodynodeshost.py
@@ -36,8 +37,9 @@ run-wifi: check-wifi
 format-ble:
 > black bnblebodynodeshost.py
 
-check-ble: format-ble
+check-ble:
 > PYTHONPATH=../../body-nodes-common/python/ pylint --disable=C0301 bnblebodynodeshost.py
+> black --check bnblebodynodeshost.py
 
 run-ble: check-ble
 > PYTHONPATH=../../body-nodes-common/python/ python3 bnblebodynodeshost.py
@@ -46,8 +48,9 @@ run-ble: check-ble
 format-bluetooth:
 > black bnbluetoothbodynodeshost.py
 
-check-bluetooth: format-bluetooth
+check-bluetooth:
 > PYTHONPATH=../../body-nodes-common/python/ pylint --disable=C0301 bnbluetoothbodynodeshost.py
+> black --check bnbluetoothbodynodeshost.py
 
 run-bluetooth: check-bluetooth
 > PYTHONPATH=../../body-nodes-common/python/ python3 bnbluetoothbodynodeshost.py
