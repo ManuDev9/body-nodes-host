@@ -22,6 +22,11 @@ jobs:
       with:
           submodules: true
 
+    - name: Install Bluetooth headers
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libbluetooth-dev bluetooth
+
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
@@ -31,11 +36,6 @@ jobs:
       run: |
         pip install pylint
         pip install black
-
-    - name: Install Bluetooth headers
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libbluetooth-dev
 
     - name: Check Wifi
       working-directory: ./modules/pythonlib
