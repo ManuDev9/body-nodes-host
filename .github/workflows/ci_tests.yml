@@ -1,11 +1,11 @@
-name: Testing all libraries
+name: Testing all Hosts
 
 # Trigger the workflow on pushes to main and any pull request
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
 
@@ -21,7 +21,7 @@ jobs:
       uses: actions/checkout@v4
       with:
           submodules: true
-    
+
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
