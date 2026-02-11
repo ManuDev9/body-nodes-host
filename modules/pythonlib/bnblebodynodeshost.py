@@ -38,6 +38,14 @@ from bleak import BleakClient
 # sudo apt-get update
 # python3 -m pip install bleak
 
+# sudo apt update && sudo apt install --reinstall bluez
+# systemctl status bluetooth
+# sudo systemctl daemon-reload
+# sudo systemctl unmask bluetooth
+# sudo systemctl start bluetooth
+# sudo systemctl enable bluetooth
+
+
 from bncommon import BnConstants
 
 
@@ -176,7 +184,9 @@ class BnBLEHostCommunicator:
                 continue
 
             print("Connecting to " + device.address)
-            client = BleakClient(device.address)
+            client = BleakClient(
+                device.address, disconnected_callback=self.__handle_disconnect
+            )
             await client.connect()
             services = client.services
             for service in services:
@@ -274,6 +284,9 @@ class BnBLEHostCommunicator:
 
     # Private functions
 
+    def __handle_disconnect(self, client):
+        print(f"Device {client.address} has fully disconnected, no bluetooth.")
+
     async def __ble_subscribe_chara(self, client, uuid):
         """Subscribe to a BLE characteristic"""
 
@@ -312,14 +325,14 @@ class BnBLEHostCommunicator:
             characteristic_uuid, value
         )
 
-        print(sender)
+        # print(sender) # example: 0000cca3-0000-1000-8000-00805f9b34fb (Handle: 168): Vendor specific
         player = self.blec_maps["BLEAddress_PlayerBodypart"][ble_address]["player"]
         bodypart = self.blec_maps["BLEAddress_PlayerBodypart"][ble_address]["bodypart"]
         if player == "":
-            print("Missing player")
+            print(f"{sender}:Missing player")
             return
         if bodypart == "":
-            print("Missing bodypart")
+            print(f"{sender}:Missing bodypart")
             return
 
         sensortype = json_message[BnConstants.MESSAGE_SENSORTYPE_TAG]
@@ -452,7 +465,8 @@ def main():
     """Main function running a default communicator"""
 
     communicator = BnBLEHostCommunicator()
-    communicator.start([BnConstants.BLE_NAME])
+    # communicator.start([BnConstants.BLE_NAME])
+    communicator.start(["Pixel 7"])
     listener = BodynodeListenerTest()
     command = "n"
     while command != "e":
