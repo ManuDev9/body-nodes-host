@@ -27,19 +27,22 @@
 # Use > for indentation
 .RECIPEPREFIX := >
 
-build-folder:
+format:
+> find src -name '*.cpp' -o -name '*.h' | xargs clang-format -i
+
+buildir: format
 > mkdir -p build
 
-build/BnWifiHostCommunicator.o: build-folder
+BnWifiHostCommunicator.o: buildir
 > g++ -c -o build/BnWifiHostCommunicator.o -g src/BnWifiHostCommunicator.cpp -Iinclude -Ithird_party -I../../body-nodes-common/cpp/src/ -fPIC
 
-build-lib: build/BnWifiHostCommunicator.o
+build-lib: BnWifiHostCommunicator.o
 > g++ -shared -o build/libBnWifiHostCommunicator.so build/BnWifiHostCommunicator.o
 
-build/host_example: 
+build-host: 
 > g++ -o build/host_example -g host_example.cpp -Iinclude -Ithird_party -I../../body-nodes-common/cpp/src/ -Lbuild -lBnWifiHostCommunicator -lpthread
 
-run: build/host_example
+run-host: build/host_example
 > LD_LIBRARY_PATH=$LD_LIBRARY_PATH:build ./build/host_example
 
 clean: 

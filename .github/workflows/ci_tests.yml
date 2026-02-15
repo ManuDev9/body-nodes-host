@@ -13,7 +13,7 @@ jobs:
   # -----------------------------------------------------------------
   # Testing Modules -> PythonLib
   # -----------------------------------------------------------------
-  test_modules_pythonlib:
+  modules-pythonlib:
     runs-on: ubuntu-latest
     steps:
 
@@ -52,6 +52,30 @@ jobs:
     - name: Check BLE
       working-directory: ./modules/pythonlib
       run: make check-ble
+
+
+  modules-cpplib:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+          submodules: true
+
+    - name: Install build tools
+      run: sudo apt-get update && sudo apt-get install -y build-essential clang-format
+
+    - name: Run clang-format
+      working-directory: ./cbasic
+      run: |
+        clang-format --dry-run --Werror $(find src -name '*.cpp' -o -name '*.h')
+
+    - name: Run C++ Tests
+      working-directory: ./cpp
+      run: |
+        make build-lib
+        make build-host 
 
 
   android-samplebodynodeshost:
