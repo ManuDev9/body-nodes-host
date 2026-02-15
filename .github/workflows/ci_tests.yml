@@ -67,12 +67,12 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y build-essential clang-format
 
     - name: Run clang-format
-      working-directory: ./cbasic
+      working-directory: ./modules/cpplib
       run: |
         clang-format --dry-run --Werror $(find src -name '*.cpp' -o -name '*.h')
 
     - name: Run C++ Tests
-      working-directory: ./cpp
+      working-directory: ./modules/cpplib
       run: |
         make build-lib
         make build-host 
