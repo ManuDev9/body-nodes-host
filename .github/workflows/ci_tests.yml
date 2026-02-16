@@ -146,7 +146,7 @@ jobs:
   # -----------------------------------------------------------------
   # Testing PC -> Blender scripts
   # -----------------------------------------------------------------
-  modules-pythonlib:
+  pc-blender:
     runs-on: ubuntu-latest
     steps:
 
