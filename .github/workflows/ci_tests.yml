@@ -53,7 +53,9 @@ jobs:
       working-directory: ./modules/pythonlib
       run: make check-ble
 
-
+  # -----------------------------------------------------------------
+  # Testing Modules -> CppLib
+  # -----------------------------------------------------------------
   modules-cpplib:
     runs-on: ubuntu-latest
     steps:
@@ -77,7 +79,9 @@ jobs:
         make build-lib
         make build-host 
 
-
+  # -----------------------------------------------------------------
+  # Testing Android -> Sample Bodynodes Host App
+  # -----------------------------------------------------------------
   android-samplebodynodeshost:
     name: Build and Test Sample Bodynodes Host App
     runs-on: ubuntu-latest
@@ -138,3 +142,30 @@ jobs:
           script: |
             ./gradlew assembleDebug
             ./gradlew connectedDebugAndroidTest --info --stacktrace
+
+  # -----------------------------------------------------------------
+  # Testing PC -> Blender scripts
+  # -----------------------------------------------------------------
+  modules-pythonlib:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+          submodules: true
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12.X'
+
+    - name: Install Python Tools
+      run: |
+        pip install pylint
+        pip install black
+
+    - name: Check Blender scritps
+      working-directory: ./pc/blender
+      run: make check-all
+

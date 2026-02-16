@@ -1,6 +1,6 @@
 # MIT License
 # 
-# Copyright (c) 2025-2026 Manuel Bottini
+# Copyright (c) 2026 Manuel Bottini
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,33 +23,15 @@
 # Use > for indentation
 .RECIPEPREFIX := >
 
-format-wifi:
-> black bnwifibodynodeshost.py
+EXCLUDE_DIRS := -path "*/Adeept.py" -o -path "./venv" -o -path "./.git" -o -path "./__pycache__"
+PYTHONPATH_VAR := BlenderCommon:../../modules/pythonlib:../../body-nodes-common/python
 
-check-wifi:
-> PYTHONPATH=../../body-nodes-common/python/ pylint --disable=C0301 bnwifibodynodeshost.py
-> black --check bnwifibodynodeshost.py
+format-all:
+> find . \( $(EXCLUDE_DIRS) \) -prune -o -name "*.py" -type f -print0 | xargs -0 black
 
-run-wifi: check-wifi
-> PYTHONPATH=../../body-nodes-common/python/ python3 bnwifibodynodeshost.py
-
-format-ble:
-> black bnblebodynodeshost.py
-
-check-ble:
-> PYTHONPATH=../../body-nodes-common/python/ pylint --disable=C0301 bnblebodynodeshost.py
-> black --check bnblebodynodeshost.py
-
-run-ble: check-ble
-> PYTHONPATH=../../body-nodes-common/python/ python3 bnblebodynodeshost.py
-
-
-format-bluetooth:
-> black bnbluetoothbodynodeshost.py
-
-check-bluetooth:
-> PYTHONPATH=../../body-nodes-common/python/ pylint --disable=C0301 bnbluetoothbodynodeshost.py
-> black --check bnbluetoothbodynodeshost.py
-
-run-bluetooth: check-bluetooth
-> PYTHONPATH=../../body-nodes-common/python/ python3 bnbluetoothbodynodeshost.py
+# pip install fake-bpy-module-latest
+# pip install fake-bpy-module-5.0
+# PYTHONPATH=BlenderComm:../../modules/pythonlib pylint --disable=C0301,C0302 <file>
+check-all:
+> find . \( $(EXCLUDE_DIRS) \) -prune -o -name "*.py" -type f -print0 | xargs -0 black --check
+> find . \( $(EXCLUDE_DIRS) \) -prune -o -name "*.py" -type f -print0 | xargs -0 -I {} sh -c 'PYTHONPATH=$(PYTHONPATH_VAR) pylint --disable=C0301,C0302 "{}"'
