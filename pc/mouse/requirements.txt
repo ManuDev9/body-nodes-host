@@ -1,0 +1,4 @@
+pyautogui
+bleak
+numpy
+pylint==4.0.4

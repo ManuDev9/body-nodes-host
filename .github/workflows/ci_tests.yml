@@ -198,3 +198,29 @@ jobs:
       working-directory: ./pc/robotic_arm_zyy
       run: make check-all
 
+
+  # -----------------------------------------------------------------
+  # Testing PC -> Mouse 
+  # -----------------------------------------------------------------
+  pc-mouse:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+          submodules: true
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12.X'
+
+    - name: Install Python Tools
+      run: |
+        pip install black==25.12.0
+        pip install -r pc/mouse/requirements.txt
+
+    - name: Check robot scritps
+      working-directory: ./pc/mouse
+      run: make check-all
