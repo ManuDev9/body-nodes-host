@@ -1,18 +1,18 @@
 #
 # MIT License
-# 
+#
 # Copyright (c) 2025 Manuel Bottini
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,18 +21,31 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Virtual 3d Environment
+"""Virtual 3d Environment for the main application"""
+
 import pygame
 
-from pygame.locals import *
-from OpenGL.GL import *
-from OpenGL.GLU import *
-from OpenGL.GLUT import *
+import pygame.locals
+import OpenGL.GL
+import OpenGL.GLU
+import OpenGL.GLUT
 
 
-# Slider class for handling input and rendering
-class HorizontalSlider:
-    def __init__(self, label, viewport, x, y, width, min_val, max_val, initial_val=None, height=20):
+class HorizontalSlider:  # pylint: disable=too-many-instance-attributes # reasons: it is ok
+    """Slider class for handling input and rendering"""
+
+    def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments # reasons: it is ok
+        self,
+        label,
+        viewport,
+        x,
+        y,
+        width,
+        min_val,
+        max_val,
+        initial_val=None,
+        height=20,
+    ):
         self.label = label
         self.viewport = viewport
         self.x = x
@@ -58,68 +71,76 @@ class HorizontalSlider:
         return self.min_val + t * (self.max_val - self.min_val)
 
     def draw(self):
+        """Draw the slider"""
 
-        glMatrixMode(GL_PROJECTION)
-        glPushMatrix()
-        glLoadIdentity()
-        gluOrtho2D(0, self.viewport["size"][0], 0, self.viewport["size"][1])
+        OpenGL.GL.glMatrixMode(OpenGL.GL.GL_PROJECTION)
+        OpenGL.GL.glPushMatrix()
+        OpenGL.GL.glLoadIdentity()
+        OpenGL.GLU.gluOrtho2D(0, self.viewport["size"][0], 0, self.viewport["size"][1])
 
-        glMatrixMode(GL_MODELVIEW)
-        glPushMatrix()
-        glLoadIdentity()
+        OpenGL.GL.glMatrixMode(OpenGL.GL.GL_MODELVIEW)
+        OpenGL.GL.glPushMatrix()
+        OpenGL.GL.glLoadIdentity()
 
-        glDisable(GL_DEPTH_TEST)
+        OpenGL.GL.glDisable(OpenGL.GL.GL_DEPTH_TEST)
 
         # Draw track
-        glColor3f(0.6, 0.6, 0.6)
-        glBegin(GL_QUADS)
-        glVertex2f(self.x, self.y + self.height / 3)
-        glVertex2f(self.x + self.width, self.y + self.height / 3)
-        glVertex2f(self.x + self.width, self.y + 2 * self.height / 3)
-        glVertex2f(self.x, self.y + 2 * self.height / 3)
-        glEnd()
+        OpenGL.GL.glColor3f(0.6, 0.6, 0.6)
+        OpenGL.GL.glBegin(OpenGL.GL.GL_QUADS)
+        OpenGL.GL.glVertex2f(self.x, self.y + self.height / 3)
+        OpenGL.GL.glVertex2f(self.x + self.width, self.y + self.height / 3)
+        OpenGL.GL.glVertex2f(self.x + self.width, self.y + 2 * self.height / 3)
+        OpenGL.GL.glVertex2f(self.x, self.y + 2 * self.height / 3)
+        OpenGL.GL.glEnd()
 
         # Draw handle
         handle_x = self.value_to_pos()
-        glColor3f(1.0, 1.0, 0.0)
-        glBegin(GL_QUADS)
-        glVertex2f(handle_x, self.y)
-        glVertex2f(handle_x + self.handle_width, self.y)
-        glVertex2f(handle_x + self.handle_width, self.y + self.height)
-        glVertex2f(handle_x, self.y + self.height)
-        glEnd()
+        OpenGL.GL.glColor3f(1.0, 1.0, 0.0)
+        OpenGL.GL.glBegin(OpenGL.GL.GL_QUADS)
+        OpenGL.GL.glVertex2f(handle_x, self.y)
+        OpenGL.GL.glVertex2f(handle_x + self.handle_width, self.y)
+        OpenGL.GL.glVertex2f(handle_x + self.handle_width, self.y + self.height)
+        OpenGL.GL.glVertex2f(handle_x, self.y + self.height)
+        OpenGL.GL.glEnd()
 
         # Draw label
         text_x = self.x + self.width / 2 - len(self.label) * 3
         text_y = self.y + self.height / 2 - 4
-        glColor3f(0.0, 0.2, 1.0)
-        glRasterPos2f(text_x, text_y)
+        OpenGL.GL.glColor3f(0.0, 0.2, 1.0)
+        OpenGL.GL.glRasterPos2f(text_x, text_y)
         for ch in self.label:
-            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ord(ch))
+            OpenGL.GLUT.glutBitmapCharacter(
+                OpenGL.GLUT.GLUT_BITMAP_HELVETICA_18,  # pylint: disable=no-member # reason: it indeed has the member
+                ord(ch),
+            )
 
         # Restore OpenGL state
-        glEnable(GL_DEPTH_TEST)
-        glMatrixMode(GL_MODELVIEW)
-        glPopMatrix()
-        glMatrixMode(GL_PROJECTION)
-        glPopMatrix()
+        OpenGL.GL.glEnable(OpenGL.GL.GL_DEPTH_TEST)
+        OpenGL.GL.glMatrixMode(OpenGL.GL.GL_MODELVIEW)
+        OpenGL.GL.glPopMatrix()
+        OpenGL.GL.glMatrixMode(OpenGL.GL.GL_PROJECTION)
+        OpenGL.GL.glPopMatrix()
 
     def handle_event(self, event):
+        """Events handler function"""
 
-        if event.type == MOUSEBUTTONDOWN:
+        if event.type == pygame.locals.MOUSEBUTTONDOWN:
             self.mouse_down = True
-        elif event.type == MOUSEBUTTONUP:
+        elif event.type == pygame.locals.MOUSEBUTTONUP:
             self.mouse_down = False
-
 
         mx, my = pygame.mouse.get_pos()
         mx = mx - self.viewport["start"][0]
-        my = self.viewport["size"][1] - my + self.viewport["start"][1]  # Flip Y for OpenGL
+        my = (
+            self.viewport["size"][1] - my + self.viewport["start"][1]
+        )  # Flip Y for OpenGL
 
         handle_x = self.value_to_pos()
         if self.mouse_down:
-            if (handle_x <= mx <= handle_x + self.handle_width and
-                self.y <= my <= self.y + self.height):
+            if (
+                handle_x <= mx <= handle_x + self.handle_width
+                and self.y <= my <= self.y + self.height
+            ):
                 self.dragging = True
 
         if not self.mouse_down:
@@ -129,29 +150,40 @@ class HorizontalSlider:
             self.value = self.pos_to_value(mx)
 
     def get_value(self):
+        """Get the value of the slider"""
+
         return self.value
 
 
-def setOrthoProjection(virt3d, viewport):
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
+def set_ortho_projection(virt3d, viewport):
+    """Setup orthogonal projections"""
+
+    OpenGL.GL.glMatrixMode(OpenGL.GL.GL_PROJECTION)
+    OpenGL.GL.glLoadIdentity()
 
     aspect = virt3d["camera"]["display"][0] / virt3d["camera"]["display"][1]
     scale = viewport["slider"]["zoom"].get_value()
-    glOrtho(-scale * aspect, scale * aspect, -scale, scale, -1000, 1000)
+    OpenGL.GL.glOrtho(-scale * aspect, scale * aspect, -scale, scale, -1000, 1000)
 
-    gluLookAt(
+    OpenGL.GLU.gluLookAt(
         viewport["slider"]["eyeX"].get_value(),
         viewport["slider"]["eyeY"].get_value(),
         viewport["slider"]["eyeZ"].get_value(),
-        0, 0, 0,           # Look at 0,0,0
-        0, 0, 1            # Up vector
+        0,
+        0,
+        0,  # Look at 0,0,0
+        0,
+        0,
+        1,  # Up vector
     )
 
-    glMatrixMode(GL_MODELVIEW)
-    glLoadIdentity()
+    OpenGL.GL.glMatrixMode(OpenGL.GL.GL_MODELVIEW)
+    OpenGL.GL.glLoadIdentity()
 
-def setupVirtual3dEnvironment():
+
+def setup_virtual3d_environment():
+    """Setup virtual environment"""
+
     virt3d = {}
 
     print("Initializing virtual world for Bodynodes sensors")
@@ -161,29 +193,114 @@ def setupVirtual3dEnvironment():
     virt3d["camera"] = {}
     virt3d["camera"]["display"] = (800, 600)
 
-    virt3d["viewport"] = [{}, {}] # Two viewports
+    virt3d["viewport"] = [{}, {}]  # Two viewports
     virt3d["viewport"][0]["start"] = (0, 0)
     virt3d["viewport"][0]["size"] = (virt3d["camera"]["display"][0] // 2, 600)
     virt3d["viewport"][0]["slider"] = {}
-    virt3d["viewport"][0]["slider"]["zoom"] = HorizontalSlider(label="Zoom0",viewport=virt3d["viewport"][0], x=50, y=570, width=300, min_val=1.0, max_val=10.0, initial_val=4.5, height=20)
-    virt3d["viewport"][0]["slider"]["eyeX"] = HorizontalSlider(label="EyeX0",viewport=virt3d["viewport"][0], x=50, y=540, width=300, min_val=-20.0, max_val=20.0, initial_val=8.0, height=20)
-    virt3d["viewport"][0]["slider"]["eyeY"] = HorizontalSlider(label="EyeY0",viewport=virt3d["viewport"][0], x=50, y=510, width=300, min_val=-20.0, max_val=20.0, initial_val=4.0, height=20)
-    virt3d["viewport"][0]["slider"]["eyeZ"] = HorizontalSlider(label="EyeZ0",viewport=virt3d["viewport"][0], x=50, y=480, width=300, min_val=-20.0, max_val=20.0, initial_val=4.0, height=20)
+    virt3d["viewport"][0]["slider"]["zoom"] = HorizontalSlider(
+        label="Zoom0",
+        viewport=virt3d["viewport"][0],
+        x=50,
+        y=570,
+        width=300,
+        min_val=1.0,
+        max_val=10.0,
+        initial_val=4.5,
+        height=20,
+    )
+    virt3d["viewport"][0]["slider"]["eyeX"] = HorizontalSlider(
+        label="EyeX0",
+        viewport=virt3d["viewport"][0],
+        x=50,
+        y=540,
+        width=300,
+        min_val=-20.0,
+        max_val=20.0,
+        initial_val=8.0,
+        height=20,
+    )
+    virt3d["viewport"][0]["slider"]["eyeY"] = HorizontalSlider(
+        label="EyeY0",
+        viewport=virt3d["viewport"][0],
+        x=50,
+        y=510,
+        width=300,
+        min_val=-20.0,
+        max_val=20.0,
+        initial_val=4.0,
+        height=20,
+    )
+    virt3d["viewport"][0]["slider"]["eyeZ"] = HorizontalSlider(
+        label="EyeZ0",
+        viewport=virt3d["viewport"][0],
+        x=50,
+        y=480,
+        width=300,
+        min_val=-20.0,
+        max_val=20.0,
+        initial_val=4.0,
+        height=20,
+    )
 
     virt3d["viewport"][1]["start"] = (virt3d["viewport"][0]["size"][0], 0)
-    virt3d["viewport"][1]["size"] = (virt3d["camera"]["display"][0] - virt3d["viewport"][0]["size"][0], 600)
+    virt3d["viewport"][1]["size"] = (
+        virt3d["camera"]["display"][0] - virt3d["viewport"][0]["size"][0],
+        600,
+    )
     virt3d["viewport"][1]["slider"] = {}
-    virt3d["viewport"][1]["slider"]["zoom"] = HorizontalSlider(label="Zoom1",viewport=virt3d["viewport"][1], x=50, y=570, width=300, min_val=1.0, max_val=10.0, initial_val=4.5, height=20)
-    virt3d["viewport"][1]["slider"]["eyeX"] = HorizontalSlider(label="EyeX1",viewport=virt3d["viewport"][1], x=50, y=540, width=300, min_val=-20.0, max_val=20.0, initial_val=8.0, height=20)
-    virt3d["viewport"][1]["slider"]["eyeY"] = HorizontalSlider(label="EyeY1",viewport=virt3d["viewport"][1], x=50, y=510, width=300, min_val=-20.0, max_val=20.0, initial_val=4.0, height=20)
-    virt3d["viewport"][1]["slider"]["eyeZ"] = HorizontalSlider(label="EyeZ1",viewport=virt3d["viewport"][1], x=50, y=480, width=300, min_val=-20.0, max_val=20.0, initial_val=4.0, height=20)
+    virt3d["viewport"][1]["slider"]["zoom"] = HorizontalSlider(
+        label="Zoom1",
+        viewport=virt3d["viewport"][1],
+        x=50,
+        y=570,
+        width=300,
+        min_val=1.0,
+        max_val=10.0,
+        initial_val=4.5,
+        height=20,
+    )
+    virt3d["viewport"][1]["slider"]["eyeX"] = HorizontalSlider(
+        label="EyeX1",
+        viewport=virt3d["viewport"][1],
+        x=50,
+        y=540,
+        width=300,
+        min_val=-20.0,
+        max_val=20.0,
+        initial_val=8.0,
+        height=20,
+    )
+    virt3d["viewport"][1]["slider"]["eyeY"] = HorizontalSlider(
+        label="EyeY1",
+        viewport=virt3d["viewport"][1],
+        x=50,
+        y=510,
+        width=300,
+        min_val=-20.0,
+        max_val=20.0,
+        initial_val=4.0,
+        height=20,
+    )
+    virt3d["viewport"][1]["slider"]["eyeZ"] = HorizontalSlider(
+        label="EyeZ1",
+        viewport=virt3d["viewport"][1],
+        x=50,
+        y=480,
+        width=300,
+        min_val=-20.0,
+        max_val=20.0,
+        initial_val=4.0,
+        height=20,
+    )
 
     virt3d["event"] = {}
     virt3d["event"]["reset"] = False
 
     pygame.init()
-    glutInit()
-    pygame.display.set_mode(virt3d["camera"]["display"], DOUBLEBUF | OPENGL)
+    OpenGL.GLUT.glutInit()
+    pygame.display.set_mode(
+        virt3d["camera"]["display"], pygame.DOUBLEBUF | pygame.OPENGL
+    )
 
     # Define points and lines
     virt3d["viewport"][0]["objects"] = {}
@@ -191,106 +308,101 @@ def setupVirtual3dEnvironment():
         [0, 0, 0],
         [0, 0, 1],
         [1, 0, 2],
-        [2, 0, 2]
+        [2, 0, 2],
     ]
 
-    virt3d["viewport"][0]["objects"]["lines"] = [
-        (0, 1),
-        (1, 2),
-        (2, 3)
-    ]
-
+    virt3d["viewport"][0]["objects"]["lines"] = [(0, 1), (1, 2), (2, 3)]
 
     virt3d["viewport"][1]["objects"] = {}
-    virt3d["viewport"][1]["objects"]["points"] = [
-        [0, 0, 0],
-        [0, 0, -1],
-        [1, 0, -1]
-    ]
+    virt3d["viewport"][1]["objects"]["points"] = [[0, 0, 0], [0, 0, -1], [1, 0, -1]]
 
-    virt3d["viewport"][1]["objects"]["lines"] = [
-        (0, 1),
-        (1, 2)
-    ]
-
+    virt3d["viewport"][1]["objects"]["lines"] = [(0, 1), (1, 2)]
 
     virt3d["time"] = 0
     return virt3d
 
-def drawAxes(length=2.0):
-    glLineWidth(2)
-    glBegin(GL_LINES)
+
+def draw_axes(length=2.0):
+    """Draw axes"""
+
+    OpenGL.GL.glLineWidth(2)
+    OpenGL.GL.glBegin(OpenGL.GL.GL_LINES)
 
     # X-axis (red)
-    glColor3f(1, 0, 0)
-    glVertex3fv([0, 0, 0])
-    glVertex3fv([length, 0, 0])
+    OpenGL.GL.glColor3f(1, 0, 0)
+    OpenGL.GL.glVertex3fv([0, 0, 0])
+    OpenGL.GL.glVertex3fv([length, 0, 0])
 
     # Y-axis (green)
-    glColor3f(0, 1, 0)
-    glVertex3fv([0, 0, 0])
-    glVertex3fv([0, length, 0])
+    OpenGL.GL.glColor3f(0, 1, 0)
+    OpenGL.GL.glVertex3fv([0, 0, 0])
+    OpenGL.GL.glVertex3fv([0, length, 0])
 
     # Z-axis (blue)
-    glColor3f(0, 0, 1)
-    glVertex3fv([0, 0, 0])
-    glVertex3fv([0, 0, length])
+    OpenGL.GL.glColor3f(0, 0, 1)
+    OpenGL.GL.glVertex3fv([0, 0, 0])
+    OpenGL.GL.glVertex3fv([0, 0, length])
 
-    glEnd()
+    OpenGL.GL.glEnd()
 
 
-def drawObjects(objects):
+def draw_objects(objects):
+    """Draw objects"""
 
     # Draw points
-    glPointSize(8)
-    glBegin(GL_POINTS)
-    glColor3f(1, 1, 1)
+    OpenGL.GL.glPointSize(8)
+    OpenGL.GL.glBegin(OpenGL.GL.GL_POINTS)
+    OpenGL.GL.glColor3f(1, 1, 1)
     for p in objects["points"]:
-        glVertex3fv(p)
-    glEnd()
+        OpenGL.GL.glVertex3fv(p)
+    OpenGL.GL.glEnd()
 
     # Draw lines
-    glBegin(GL_LINES)
-    glColor3f(1, 1, 0)
+    OpenGL.GL.glBegin(OpenGL.GL.GL_LINES)
+    OpenGL.GL.glColor3f(1, 1, 0)
     for l in objects["lines"]:
-        glVertex3fv(objects["points"][l[0]])
-        glVertex3fv(objects["points"][l[1]])
-    glEnd()
+        OpenGL.GL.glVertex3fv(objects["points"][l[0]])
+        OpenGL.GL.glVertex3fv(objects["points"][l[1]])
+    OpenGL.GL.glEnd()
 
 
-def drawSeparator(virt3d):
+def draw_separator(virt3d):
+    """Draw the separator"""
 
     window_width = virt3d["camera"]["display"][0]
     window_height = virt3d["camera"]["display"][1]
     # Set full window viewport and projection
-    glViewport(0, 0, window_width, window_height)
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
-    gluOrtho2D(0, window_width, 0, window_height)
-    glMatrixMode(GL_MODELVIEW)
-    glLoadIdentity()
+    OpenGL.GL.glViewport(0, 0, window_width, window_height)
+    OpenGL.GL.glMatrixMode(OpenGL.GL.GL_PROJECTION)
+    OpenGL.GL.glLoadIdentity()
+    OpenGL.GLU.gluOrtho2D(0, window_width, 0, window_height)
+    OpenGL.GL.glMatrixMode(OpenGL.GL.GL_MODELVIEW)
+    OpenGL.GL.glLoadIdentity()
 
     # Draw vertical line in the middle
-    glColor3f(1, 1, 1)  # White
-    glLineWidth(2)
-    glBegin(GL_LINES)
-    glVertex2f(virt3d["viewport"][0]["size"][0]+virt3d["viewport"][0]["start"][0], 0)
-    glVertex2f(virt3d["viewport"][0]["size"][0]+virt3d["viewport"][0]["start"][0], window_height)
-    glEnd()
+    OpenGL.GL.glColor3f(1, 1, 1)  # White
+    OpenGL.GL.glLineWidth(2)
+    OpenGL.GL.glBegin(OpenGL.GL.GL_LINES)
+    OpenGL.GL.glVertex2f(
+        virt3d["viewport"][0]["size"][0] + virt3d["viewport"][0]["start"][0], 0
+    )
+    OpenGL.GL.glVertex2f(
+        virt3d["viewport"][0]["size"][0] + virt3d["viewport"][0]["start"][0],
+        window_height,
+    )
+    OpenGL.GL.glEnd()
 
 
-def moveVirtual3dObjects(virt3d, bnsensors, bnrobot):
-    return
+def update_virtual3d_environment(virt3d):
+    """Update virtual environment"""
 
-def updateVirtual3dEnvironment(virt3d):
-    
     # Check events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             return False
 
         # Handle key presses
-        elif event.type == pygame.KEYDOWN:
+        if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_r:
                 virt3d["event"]["reset"] = True
             if event.key == pygame.K_ESCAPE:
@@ -300,27 +412,31 @@ def updateVirtual3dEnvironment(virt3d):
             for slider in viewport["slider"]:
                 viewport["slider"][slider].handle_event(event)
 
-    #print(virt3d["camera"])
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
+    # print(virt3d["camera"])
+    OpenGL.GL.glClear(OpenGL.GL.GL_COLOR_BUFFER_BIT | OpenGL.GL.GL_DEPTH_BUFFER_BIT)
 
     for viewport in virt3d["viewport"]:
 
-        glViewport( viewport["start"][0], viewport["start"][1], viewport["size"][0], viewport["size"][1])
-        setOrthoProjection(virt3d, viewport)
-        drawAxes()
-        drawObjects(viewport["objects"])
+        OpenGL.GL.glViewport(
+            viewport["start"][0],
+            viewport["start"][1],
+            viewport["size"][0],
+            viewport["size"][1],
+        )
+        set_ortho_projection(virt3d, viewport)
+        draw_axes()
+        draw_objects(viewport["objects"])
         for slider in viewport["slider"]:
             viewport["slider"][slider].draw()
 
-
-    drawSeparator(virt3d)
+    draw_separator(virt3d)
     pygame.display.flip()
 
     return True
 
 
-def setRoboticArmsPoints(virt3d, point0, point1, point2, point3 ):
+def set_robotic_arms_points(virt3d, point0, point1, point2, point3):
+    """Set points of robotic arm"""
 
     virt3d["viewport"][0]["objects"]["points"] = [
         point0,
@@ -329,7 +445,9 @@ def setRoboticArmsPoints(virt3d, point0, point1, point2, point3 ):
         point3,
     ]
 
-def setSensorsArmsPoints(virt3d, point0, point1, point2 ):
+
+def set_sensors_arms_points(virt3d, point0, point1, point2):
+    """Set points of bodynodes arm"""
 
     virt3d["viewport"][1]["objects"]["points"] = [
         point0,
@@ -339,8 +457,12 @@ def setSensorsArmsPoints(virt3d, point0, point1, point2 ):
 
 
 def wait(time):
+    """Sleep function"""
+
     pygame.time.wait(time)
 
-def quit():
-    pygame.quit()
 
+def quit_world():
+    """Quit the window"""
+
+    pygame.quit()

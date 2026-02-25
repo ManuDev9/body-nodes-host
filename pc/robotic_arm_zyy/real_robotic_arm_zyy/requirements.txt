@@ -1,2 +1,6 @@
 pyserial==3.5b0
+pyautogui
+bleak
+numpy
+pylint
 pynput

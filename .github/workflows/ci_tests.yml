@@ -170,3 +170,32 @@ jobs:
       working-directory: ./pc/blender
       run: make check-all
 
+  # -----------------------------------------------------------------
+  # Testing PC -> Robot scripts
+  # -----------------------------------------------------------------
+  pc-blender:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+          submodules: true
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12.X'
+
+    - name: Install Python Tools
+      run: |
+        pip install pylint
+        pip install black
+        pip install -r pc/robotic_arm_zyy/real_robotic_arm_zyy/requirements.txt
+        pip install -r pc/robotic_arm_zyy/virtual3d_robotic_arm_zyy/requirements.txt
+        pip install -r pc/robotic_arm_zyy/virtual3d_sensors/requirements.txt
+
+    - name: Check robot scritps
+      working-directory: ./pc/robotic_arm_zyy
+      run: make check-all
+
