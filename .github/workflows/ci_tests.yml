@@ -171,9 +171,9 @@ jobs:
       run: make check-all
 
   # -----------------------------------------------------------------
-  # Testing PC -> Robot scripts
+  # Testing PC -> Robotic Arm ZYY scripts
   # -----------------------------------------------------------------
-  pc-blender:
+  pc-robotic-arm-zyy:
     runs-on: ubuntu-latest
     steps:
 
