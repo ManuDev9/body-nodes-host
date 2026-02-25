@@ -189,7 +189,7 @@ jobs:
 
     - name: Install Python Tools
       run: |
-        pip install black
+        pip install black=25.12.0
         pip install -r pc/robotic_arm_zyy/real_robotic_arm_zyy/requirements.txt
         pip install -r pc/robotic_arm_zyy/virtual3d_robotic_arm_zyy/requirements.txt
         pip install -r pc/robotic_arm_zyy/virtual3d_sensors/requirements.txt
