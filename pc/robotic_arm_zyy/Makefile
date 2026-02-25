@@ -32,5 +32,5 @@ format-all:
 # pip install pyautogui
 # PYTHONPATH=../../modules/pythonlib:../../body-nodes-common/python pylint --disable=C0301,C0302 <file>
 check-all:
-> find . \( $(EXCLUDE_DIRS) \) -prune -o -name "*.py" -type f -print0 | xargs -0 black --check
+> find . \( $(EXCLUDE_DIRS) \) -prune -o -name "*.py" -type f -print0 | xargs -0 black --check --diff
 > find . \( $(EXCLUDE_DIRS) \) -prune -o -name "*.py" -type f -print0 | xargs -0 -I {} sh -c 'PYTHONPATH=$(PYTHONPATH_VAR) pylint --extension-pkg-whitelist=pygame --disable=C0301,C0302 "{}"'
