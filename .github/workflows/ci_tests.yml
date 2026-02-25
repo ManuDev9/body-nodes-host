@@ -194,7 +194,7 @@ jobs:
         pip install -r pc/robotic_arm_zyy/virtual3d_robotic_arm_zyy/requirements.txt
         pip install -r pc/robotic_arm_zyy/virtual3d_sensors/requirements.txt
 
-    - name: Check robot scritps
+    - name: Check Robotic Arm ZYY scripts
       working-directory: ./pc/robotic_arm_zyy
       run: make check-all
 
@@ -221,6 +221,6 @@ jobs:
         pip install black==25.12.0
         pip install -r pc/mouse/requirements.txt
 
-    - name: Check robot scritps
+    - name: Check Mouse script
       working-directory: ./pc/mouse
       run: make check-all
