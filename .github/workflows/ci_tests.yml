@@ -224,3 +224,29 @@ jobs:
     - name: Check Mouse script
       working-directory: ./pc/mouse
       run: make check-all
+
+  # -----------------------------------------------------------------
+  # Testing PC -> Unity C# ( dotnet )
+  # -----------------------------------------------------------------
+  csharp_tests:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup C#
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Install dotnet-format
+      run: dotnet tool install -g dotnet-format
+
+    - name: Dotnet Format Check
+      working-directory: ./pc/unity
+      run: make test-format
+
+    - name: Run Build
+      working-directory: ./pc/unity
+      run: make build

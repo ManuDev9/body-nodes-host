@@ -24,9 +24,7 @@
 
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using DG.Tweening.Core.Easing;
-using UnityEngine.SocialPlatforms.Impl;
 using System.Security.Cryptography;
 
 #if __BODYNODES_DEV

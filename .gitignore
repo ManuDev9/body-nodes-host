@@ -6,4 +6,6 @@ modules/cpplib_wifi/test
 android/SampleBodynodesHost/.idea/*
 venv*
 
+pc/unity/BodynodesDev/obj
+
 modules/cpplib/test

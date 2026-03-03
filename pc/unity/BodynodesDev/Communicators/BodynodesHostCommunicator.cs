@@ -23,16 +23,14 @@
 */
 
 using System.Collections.Generic;
-using UnityEngine;
 using BodynodesDev.Common;
 
 namespace BodynodesDev
 {
     public class BodynodesHostCommunicator
     {
-        public TextMesh mDebugText = null;
 
-        private BodynodesHostInterface mBodynodesHost = null;
+        private BodynodesHostInterface? mBodynodesHost = null;
 
         // Use this for initialization
         //Called before Start() of all the other objects
@@ -44,52 +42,63 @@ namespace BodynodesDev
 #error "You need to set up the preprocessing host communicator type flag and (optionally) platform type in Unity: 'File' -> 'Buil Settings' -> 'Player Settings' -> 'Player' -> 'Script Compilation'. Click on + and then add one of the following combination flags: __WIFI_NODES or __BUILD_WINDOWS_PC"
 #endif
             mBodynodesHost.start(parameters);
-            mBodynodesHost.setDebugUI(mDebugText);
-            Debug.Log("mBodynodesHost = " + mBodynodesHost);
         }
 
-        public BodynodesHostInterface getInternalHostCommunicator()
+        public BodynodesHostInterface? getInternalHostCommunicator()
         {
             return mBodynodesHost;
         }
 
-        public void addAction(BnDatatypes.BnAction action) { 
-            mBodynodesHost.addAction(action);
+        public void addAction(BnDatatypes.BnAction action)
+        {
+            if (mBodynodesHost != null)
+            {
+                mBodynodesHost.addAction(action);
+            }
         }
 
         // Update is called once per frame
         public void update()
         {
-            mBodynodesHost.update();
-            mBodynodesHost.sendAllActions();
+            if (mBodynodesHost != null)
+            {
+                mBodynodesHost.update();
+                mBodynodesHost.sendAllActions();
+            }
         }
 
         public void stop()
         {
-            if(mBodynodesHost != null)
+            if (mBodynodesHost != null)
             {
                 mBodynodesHost.stop();
             }
         }
 
-        public string anyNodeRequesting()
+        public string? anyNodeRequesting()
         {
-            return mBodynodesHost.anyNodeRequesting();
+            if (mBodynodesHost != null)
+            {
+                return mBodynodesHost.anyNodeRequesting();
+            }
+            return null;
         }
 
         public void acceptNodeRequesting(string identifier)
         {
-            mBodynodesHost.acceptNodeRequesting(identifier);
+            if (mBodynodesHost != null)
+            {
+                mBodynodesHost.acceptNodeRequesting(identifier);
+            }
         }
 
-        public bool isRunning() {
+        public bool isRunning()
+        {
             if (mBodynodesHost != null)
             {
                 return mBodynodesHost.isRunning();
             }
-            else {
-                return false;
-            }
+            return false;
         }
     }
 }

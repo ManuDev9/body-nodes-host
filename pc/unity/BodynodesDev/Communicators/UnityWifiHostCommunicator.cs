@@ -24,7 +24,6 @@
 
 // Implements BodynodesHost Specification Dev 1.0
 //#define __WIFI_NODES
-using UnityEngine;
 using System.Collections.Generic;
 using System.Text;
 using System;
@@ -47,23 +46,20 @@ namespace BodynodesDev
         private List<string> mAcceptedConnections = new List<string>();
         private object mConnectionMapLock = new object();
 
-        //Here I put all the android dependent code
-        private TextMesh mDebugUI = null;
-
-        private Thread mDataConnectionThread = null;
-        private Thread mMulticastConnectionThread = null;
-        private UdpClient mConnector;
-        private UdpClient mMulticastConnector;
-        private static IPAddress mMulticastGroupAddress = IPAddress.Parse(BnConstants.BODYNODES_MULTICASTGROUP_DEFAULT);
-        private static IPEndPoint mMulticastGroupEndpoint = new IPEndPoint(mMulticastGroupAddress, BnConstants.BODYNODES_MULTICAST_PORT);
-        private string mMulticastMessage = null;
-        private string mIpRequesting = null;
+        private Thread? mDataConnectionThread = null;
+        private Thread? mMulticastConnectionThread = null;
+        private UdpClient? mConnector = null;
+        private UdpClient? mMulticastConnector = null;
+        private static IPAddress mMulticastGroupAddress = IPAddress.Parse(BnConstants.WIFI_MULTICASTGROUP_DEFAULT);
+        private static IPEndPoint mMulticastGroupEndpoint = new IPEndPoint(mMulticastGroupAddress, BnConstants.WIFI_MULTICAST_PORT);
+        private string? mMulticastMessage = null;
+        private string? mIpRequesting = null;
 
         private bool mToStop;
 
         public void start(List<string> parameters)
         {
-            // Start TcpServer background thread 		
+            // Start TcpServer background thread
             mToStop = false;
             mIpRequesting = null;
             mMulticastMessage = parameters[0];
@@ -77,19 +73,28 @@ namespace BodynodesDev
         public void stop()
         {
             //nothing to be done
-            Debug.Log("Closing sockets");
+            printLog("Closing sockets");
             mToStop = true;
             mIpRequesting = null;
-            mConnector.Close();
+
+            if (mConnector != null)
+            {
+                mConnector.Close();
+                mConnector = null;
+            }
             if (mDataConnectionThread != null)
             {
-                mDataConnectionThread.Abort();
+                mDataConnectionThread.Join();
                 mDataConnectionThread = null;
             }
-            mMulticastConnector.Close();
+            if (mMulticastConnector != null)
+            {
+                mMulticastConnector.Close();
+                mMulticastConnector = null;
+            }
             if (mMulticastConnectionThread != null)
             {
-                mMulticastConnectionThread.Abort();
+                mMulticastConnectionThread.Join();
                 mMulticastConnectionThread = null;
             }
         }
@@ -101,27 +106,31 @@ namespace BodynodesDev
 
         void sendACKH(IPEndPoint ipEndpoint)
         {
-            Debug.Log("Sending ACKH");
+            if (mConnector == null)
+            {
+                return;
+            }
+            printLog("Sending ACKH");
             Byte[] ackResponse = Encoding.ASCII.GetBytes("ACKH");
             mConnector.Send(ackResponse, ackResponse.Length, ipEndpoint);
         }
 
         void sendMulticastBN()
         {
-            if (mMulticastMessage == null)
+            if (mMulticastMessage == null || mMulticastConnector == null)
             {
                 return;
             }
-            Debug.Log("Sending multicast BN");
+            printLog("Sending multicast BN");
             Byte[] bn_bytes = Encoding.ASCII.GetBytes(mMulticastMessage);
             mMulticastConnector.Send(bn_bytes, bn_bytes.Length, mMulticastGroupEndpoint);
         }
 
         private void run_multicast_background()
         {
-            Debug.Log("run_multicast_background starting");
-            mMulticastConnector = new UdpClient(BnConstants.BODYNODES_MULTICAST_PORT);
-            Debug.Log("mMulticastConnector listening to port " + BnConstants.BODYNODES_MULTICAST_PORT);
+            printLog("run_multicast_background starting");
+            mMulticastConnector = new UdpClient(BnConstants.WIFI_MULTICAST_PORT);
+            printLog("mMulticastConnector listening to port " + BnConstants.WIFI_MULTICAST_PORT);
 
             // MulticastOption multicastOption = new MulticastOption(mMulticastGroupAddress);
             // IPAddress group = multicastOption.Group;
@@ -130,11 +139,11 @@ namespace BodynodesDev
 #if UNITY_STANDALONE_WIN
             string localIPAddress = GetLocalIPAddress();
             if (localIPAddress == null) {
-                Debug.Log("No local IP, you are probably not connected to the network");
+                printLog("No local IP, you are probably not connected to the network");
                 mToStop = true;
                 return;
             }
-            Debug.Log("GetLocalIPAddress() = " + localIPAddress);
+            printLog("GetLocalIPAddress() = " + localIPAddress);
             mMulticastConnector.JoinMulticastGroup(mMulticastGroupAddress, IPAddress.Parse(localIPAddress));
 #else
             mMulticastConnector.JoinMulticastGroup(mMulticastGroupAddress);
@@ -143,18 +152,18 @@ namespace BodynodesDev
             {
                 try
                 {
-                    //Debug.Log("GetLocalIPAddress() = " + localIPAddress);
+                    //printLog("GetLocalIPAddress() = " + localIPAddress);
                     sendMulticastBN();
                     Thread.Sleep(5000);
                 }
                 catch (Exception err)
                 {
-                    Debug.Log(err.ToString());
+                    printLog(err.ToString());
                 }
             }
         }
 
-        private static string GetLocalIPAddress()
+        private static string? GetLocalIPAddress()
         {
             var host = Dns.GetHostEntry(Dns.GetHostName());
             foreach (var ip in host.AddressList)
@@ -179,9 +188,9 @@ namespace BodynodesDev
 
         private void run_connection_background()
         {
-            Debug.Log("UdpClient to start");
-            mConnector = new UdpClient(BnConstants.BODYNODES_PORT);
-            Debug.Log("UdpClient mounted, listening to port " + BnConstants.BODYNODES_PORT);
+            printLog("UdpClient to start");
+            mConnector = new UdpClient(BnConstants.WIFI_PORT);
+            printLog("UdpClient mounted, listening to port " + BnConstants.WIFI_PORT);
             while (!mToStop)
             {
                 try
@@ -191,7 +200,7 @@ namespace BodynodesDev
 
                     // encode UTF8-coded bytes to text format
                     if (received_bytes.Length == 0) return;
-                    //Debug.Log("Receiving from " + anyIP.Address.ToString());
+                    //printLog("Receiving from " + anyIP.Address.ToString());
 
                     // Checking this connection
                     string ipstring = anyIP.Address.ToString();
@@ -200,13 +209,13 @@ namespace BodynodesDev
                         if (mIpRequesting == null)
                         {
                             mIpRequesting = ipstring;
-                            //Debug.Log("Enabled the request");
+                            //printLog("Enabled the request");
                         }
                         else
                         {
-                            //Debug.Log("Another request is in progress");
+                            //printLog("Another request is in progress");
                         }
-                        //Debug.Log("This ip has not been accepted yet");
+                        //printLog("This ip has not been accepted yet");
                         continue;
                     }
 
@@ -219,13 +228,13 @@ namespace BodynodesDev
                     else
                     {
                         string receivedPacket = Encoding.UTF8.GetString(received_bytes);
-                        Debug.Log("receivedPacket = "+ receivedPacket);
+                        printLog("receivedPacket = " + receivedPacket);
                         parseMessage(anyIP, receivedPacket);
                     }
                 }
                 catch (Exception err)
                 {
-                    Debug.Log(err.ToString());
+                    printLog(err.ToString());
                 }
             }
         }
@@ -237,14 +246,14 @@ namespace BodynodesDev
             {
                 BnDatatypes.BnMessage message = new BnDatatypes.BnMessage();
                 message.parseString(jsonMessage.ToString());
-                //Debug.Log("Datapacket has been parsed");
+                //printLog("Datapacket has been parsed");
                 //message.print();
 
-                string player_bodypart_key = BnUtils.createPlayerBodypartKey(message.getPlayer(), message.getBodypart());
-                string player_bodypart_sensortype_key = BnUtils.createPlayerBodypartSensortypeKey(message.getPlayer(), message.getBodypart(), message.getData().getType());
+                string player_bodypart_key = BnUtils.CreatePlayerBodypartKey(message.getPlayer(), message.getBodypart());
+                string player_bodypart_sensortype_key = BnUtils.CreatePlayerBodypartSensortypeKey(message.getPlayer(), message.getBodypart(), message.getData().getSensorType());
 
-                //Debug.Log("Setting message for player_bodypart_sensortype_key = " + player_bodypart_sensortype_key);
-                //Debug.Log("jsonMessage.ToString() = " + jsonMessage.ToString());
+                //printLog("Setting message for player_bodypart_sensortype_key = " + player_bodypart_sensortype_key);
+                //printLog("jsonMessage.ToString() = " + jsonMessage.ToString());
                 lock (mConnectionMapLock)
                 {
                     mConnectionsMap[player_bodypart_key] = ipAddress;
@@ -253,13 +262,13 @@ namespace BodynodesDev
             }
         }
 
-        public BnDatatypes.BnMessage getMessage(BnDatatypes.BnName player, BnDatatypes.BnBodypart bodypart, BnDatatypes.BnType sensortype)
+        public BnDatatypes.BnMessage getMessage(BnDatatypes.BnPlayer player, BnDatatypes.BnBodypart bodypart, BnDatatypes.BnSensorType sensortype)
         {
-            string player_bodypart_sensortype_key = BnUtils.createPlayerBodypartSensortypeKey(
+            string player_bodypart_sensortype_key = BnUtils.CreatePlayerBodypartSensortypeKey(
                 player,
                 bodypart,
                 sensortype);
-            //Debug.Log("Looking for player_bodypart_sensortype_key = " + player_bodypart_sensortype_key);
+            //printLog("Looking for player_bodypart_sensortype_key = " + player_bodypart_sensortype_key);
             if (mMessagesMap.ContainsKey(player_bodypart_sensortype_key))
             {
                 BnDatatypes.BnMessage message = mMessagesMap[player_bodypart_sensortype_key];
@@ -271,12 +280,18 @@ namespace BodynodesDev
 
         public void addAction(BnDatatypes.BnAction action)
         {
-            //Debug.Log("Adding action: " + action.ToString());
+            //printLog("Adding action: " + action.ToString());
             mActionsList.Add(action);
         }
 
         public void sendAllActions()
         {
+            if (mConnector == null)
+            {
+                mActionsList.Clear();
+                return;
+            }
+
             lock (mConnectionMapLock)
             {
                 /*
@@ -287,7 +302,7 @@ namespace BodynodesDev
                     {
                         log += "->" + mConnectionsMap[key].ToString() + "\n";
                     }
-                    Debug.Log(log);
+                    printLog(log);
                 }
                 */
 
@@ -298,7 +313,7 @@ namespace BodynodesDev
                     HashSet<IPEndPoint> listIps = new HashSet<IPEndPoint>();
                     if (action.getPlayer().value == BnConstants.PLAYER_ALL_TAG && action.getBodypart().value == BnConstants.BODYPART_ALL_TAG)
                     {
-                        //Debug.Log("Sending action to everything");
+                        //printLog("Sending action to everything");
                         foreach (string key in mConnectionsMap.Keys)
                         {
                             listIps.Add(mConnectionsMap[key]);
@@ -306,11 +321,11 @@ namespace BodynodesDev
                     }
                     else if (action.getPlayer().value == BnConstants.PLAYER_ALL_TAG && action.getBodypart().value != BnConstants.BODYPART_ALL_TAG)
                     {
-                        string bodypart_key = BnUtils.createBodypartKey(action.getBodypart());
-                        //Debug.Log("Sending action to bodypart_key = " + bodypart_key);
+                        string bodypart_key = BnUtils.CreateBodypartKey(action.getBodypart());
+                        //printLog("Sending action to bodypart_key = " + bodypart_key);
                         foreach (string key in mConnectionsMap.Keys)
                         {
-                            if (BnUtils.doesKeyContainBodypart(key, bodypart_key))
+                            if (BnUtils.DoesKeyContainBodypart(key, bodypart_key))
                             {
                                 listIps.Add(mConnectionsMap[key]);
                             }
@@ -318,11 +333,11 @@ namespace BodynodesDev
                     }
                     else if (action.getPlayer().value != BnConstants.PLAYER_ALL_TAG && action.getBodypart().value == BnConstants.BODYPART_ALL_TAG)
                     {
-                        string player_key = BnUtils.createPlayerKey(action.getPlayer());
-                        //Debug.Log("Sending action to player_key = " + player_key);
+                        string player_key = BnUtils.CreatePlayerKey(action.getPlayer());
+                        //printLog("Sending action to player_key = " + player_key);
                         foreach (string key in mConnectionsMap.Keys)
                         {
-                            if (BnUtils.doesKeyContainPlayer(key, player_key))
+                            if (BnUtils.DoesKeyContainPlayer(key, player_key))
                             {
                                 listIps.Add(mConnectionsMap[key]);
                             }
@@ -330,15 +345,15 @@ namespace BodynodesDev
                     }
                     else
                     {
-                        string player_bodypart_key = BnUtils.createPlayerBodypartKey(action.getPlayer(), action.getBodypart());
-                        Debug.Log("Sending action " + action.ToString() + " to player_bodypart_key = " + player_bodypart_key);
+                        string player_bodypart_key = BnUtils.CreatePlayerBodypartKey(action.getPlayer(), action.getBodypart());
+                        printLog("Sending action " + action.ToString() + " to player_bodypart_key = " + player_bodypart_key);
                         if (mConnectionsMap.ContainsKey(player_bodypart_key))
                         {
                             listIps.Add(mConnectionsMap[player_bodypart_key]);
                         }
                         else
                         {
-                            Debug.Log("But it doesn't exist");
+                            printLog("But it doesn't exist");
                         }
                     }
                     if (listIps.Count > 0)
@@ -347,7 +362,7 @@ namespace BodynodesDev
                         foreach (IPEndPoint node_ip_address in listIps)
                         {
                             byte[] action_bytes = Encoding.UTF8.GetBytes(action.getString());
-                            //Debug.Log("Sending action "+ action.ToString() +" to " + node_ip_address.ToString() + " num_bytes = "+ num_bytes);
+                            //printLog("Sending action "+ action.ToString() +" to " + node_ip_address.ToString() + " num_bytes = "+ num_bytes);
                             mConnector.Send(action_bytes, action_bytes.Length, node_ip_address);
                             Thread.Sleep(1);
                         }
@@ -360,22 +375,15 @@ namespace BodynodesDev
 
         public void printLog(string text)
         {
-            if (mDebugUI == null)
-            {
-                Debug.Log(text);
-            }
-            else
-            {
-                mDebugUI.text = text;
-            }
+#if UNITY
+            Debug.Log(text);
+#else
+            Console.WriteLine(text);
+#endif
         }
 
-        public void setDebugUI(TextMesh debugUI)
-        {
-            mDebugUI = debugUI;
-        }
 
-        public string anyNodeRequesting()
+        public string? anyNodeRequesting()
         {
             return mIpRequesting;
         }
@@ -386,11 +394,11 @@ namespace BodynodesDev
             {
                 mAcceptedConnections.Add(identifier);
                 mIpRequesting = null;
-                Debug.Log("Id = " + identifier + " got accepted");
+                printLog("Id = " + identifier + " got accepted");
             }
             else
             {
-                Debug.Log("Another identifer gor accepted id = " + identifier + " mIpRequesting = " + mIpRequesting);
+                printLog("Another identifer gor accepted id = " + identifier + " mIpRequesting = " + mIpRequesting);
             }
         }
 
