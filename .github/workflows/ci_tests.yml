@@ -228,12 +228,14 @@ jobs:
   # -----------------------------------------------------------------
   # Testing PC -> Unity C# ( dotnet )
   # -----------------------------------------------------------------
-  csharp_tests:
+  pc-unity:
     runs-on: ubuntu-latest
     steps:
 
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+          submodules: true
 
     - name: Setup C#
       uses: actions/setup-dotnet@v4
