@@ -31,7 +31,7 @@ check-wifi:
 > black --check bnwifibodynodeshost.py
 
 run-wifi: check-wifi
-> PYTHONPATH=../../body-nodes-common/python/ python3 bnwifibodynodeshost.py
+> PYTHONPATH=../../body-nodes-common/python/ python3 -u bnwifibodynodeshost.py
 
 format-ble:
 > black bnblebodynodeshost.py
@@ -41,8 +41,7 @@ check-ble:
 > black --check bnblebodynodeshost.py
 
 run-ble: check-ble
-> PYTHONPATH=../../body-nodes-common/python/ python3 bnblebodynodeshost.py
-
+> PYTHONPATH=../../body-nodes-common/python/ python3 -u bnblebodynodeshost.py
 
 format-bluetooth:
 > black bnbluetoothbodynodeshost.py
@@ -52,4 +51,4 @@ check-bluetooth:
 > black --check bnbluetoothbodynodeshost.py
 
 run-bluetooth: check-bluetooth
-> PYTHONPATH=../../body-nodes-common/python/ python3 bnbluetoothbodynodeshost.py
+> PYTHONPATH=../../body-nodes-common/python/ python3 -u bnbluetoothbodynodeshost.py
