@@ -36,6 +36,7 @@ from bncommon import BnConstants
 # TO REMOVE
 bodynodes_server = {
     "buffer_size": 1024,
+    #    "connection_keep_alive_rec_interval_ms": 5000,  #for testing
     "connection_keep_alive_rec_interval_ms": 60000,
     "connection_ack_interval_ms": 1000,
     "multicast_ttl": 2,
@@ -302,7 +303,11 @@ class BnWifiHostCommunicator:
                     current_milli_time() - tempconnections_data["last_rec_time"]
                     > bodynodes_server["connection_keep_alive_rec_interval_ms"]
                 ):
-                    tempconnections_data["STATUS"] = "DISCONNECTED"
+                    if tempconnections_data["STATUS"] != "DISCONNECTED":
+                        print(
+                            f"Setting {tempconnections_data["ip_address"]} as disconnected because of inactivity"
+                        )
+                        tempconnections_data["STATUS"] = "DISCONNECTED"
                 if self.__check_for_ackn(tempconnections_data):
                     print("Received ACKN")
                     self.__send_ackh(tempconnections_data)
