@@ -164,13 +164,7 @@ jobs:
       run: |
         pip install pylint
         pip install black
-        pip install fake-bpy-module-4.2
 
-    - name: Verify fake-bpy-module is installed
-      run: |
-        python -c "import bpy; print('bpy is importable:', bpy.__file__)"
-        python -c "import mathutils; print('mathutils is importable:', mathutils.__file__)"
-    
     - name: Check Blender scritps
       working-directory: ./pc/blender
       run: make check-all

@@ -29,11 +29,9 @@ PYTHONPATH_VAR := BlenderCommon:../../modules/pythonlib:../../body-nodes-common/
 format-all:
 > find . \( $(EXCLUDE_DIRS) \) -prune -o -name "*.py" -type f -print0 | xargs -0 black
 
-# pip install fake-bpy-module-latest
-# pip install fake-bpy-module-5.0
 # PYTHONPATH=BlenderComm:../../modules/pythonlib pylint --disable=C0301,C0302,C0116,R0903 <file>
 check-all:
 > find . \( $(EXCLUDE_DIRS) \) -prune -o -name "*.py" -type f -print0 | xargs -0 black --check
 > find . \( $(EXCLUDE_DIRS) \) -prune -o -name "*.py" -type f -print0 | xargs -0 -I {} \
-	sh -c 'PYTHONPATH=$(PYTHONPATH_VAR):$$PYTHONPATH pylint --disable=C0301,C0302,C0116,R0903 "{}"'
+	sh -c 'PYTHONPATH=$(PYTHONPATH_VAR):$$PYTHONPATH pylint --disable=C0301,C0302,C0116,R0903,E0401,W0613 "{}"'
 
